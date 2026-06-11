@@ -28,65 +28,48 @@
 
   <!-- Big Clock Timer -->
   <div class="my-10 md:my-14 flex flex-col items-center z-10 relative select-none">
-    <span 
-      id="imm-clock" 
-      class="font-mono text-7xl sm:text-8xl md:text-[10rem] font-bold tracking-tighter tabular-nums text-ink drop-shadow-sm transition-all leading-none duration-500 ease-out"
-    >
-      25:00
-    </span>
+    <div id="imm-clock-display" class="relative group cursor-pointer hover:bg-canvas-soft-2/80 rounded-2xl px-6 py-2.5 transition-all" title="Click to set custom timer duration">
+      <span 
+        id="imm-clock" 
+        class="font-mono text-7xl sm:text-8xl md:text-[10rem] font-bold tracking-tighter tabular-nums text-ink drop-shadow-sm transition-all leading-none duration-500 ease-out"
+      >
+        25:00
+      </span>
+      <!-- Small edit pencil indicator -->
+      <span class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity text-body bg-canvas border border-hairline p-1.5 rounded-full shadow-sm scale-90">
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      </span>
+    </div>
+    
+    <!-- Edit form, hidden by default -->
+    <form id="imm-edit-form" class="hidden justify-center items-center gap-2 mt-2">
+      <input 
+        type="number" 
+        id="imm-edit-input" 
+        min="1" max="180" 
+        class="w-36 bg-canvas-soft border border-hairline rounded-md text-6xl sm:text-7xl font-mono font-bold text-ink text-center focus:ring-1 focus:ring-brand-pink focus:outline-none py-2"
+        value="25"
+      />
+      <span class="text-sm sm:text-base text-mute font-mono font-semibold">MIN</span>
+      <button type="submit" class="ml-3 p-2 rounded-full bg-primary text-on-primary hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-sm" aria-label="Save time">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+    </form>
+
     <!-- Active task title subtitle -->
     <p id="imm-task-title" class="font-sans text-sm sm:text-base text-body text-center mt-6 max-w-lg font-medium">
       Select a task to unlock focus mode.
     </p>
   </div>
 
-  <!-- Mixer and Controls Row -->
-  <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-hairline z-10 relative items-center">
+  <!-- Controls Section (Ambient mixer removed) -->
+  <div class="w-full max-w-md mx-auto pt-6 border-t border-hairline z-10 relative flex flex-col gap-4">
     
-    <!-- LEFT: Ambient Sound Synthesizer Mixer -->
-    <div class="space-y-4">
-      <h4 class="font-mono text-[10px] font-semibold uppercase tracking-wider text-mute">Ambient sound mixer.</h4>
-      
-      <div class="space-y-3">
-        <!-- Brown Noise Volume -->
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-body font-medium w-16 select-none">White Wind</span>
-          <input 
-            type="range" 
-            id="slider-brown" 
-            min="0" max="100" value="0" 
-            class="flex-1 accent-primary bg-canvas-soft-2 border border-hairline h-1 rounded" 
-            aria-label="Brown noise volume slider"
-          />
-        </div>
-        
-        <!-- Rain Volume -->
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-body font-medium w-16 select-none">Soft Rain</span>
-          <input 
-            type="range" 
-            id="slider-rain" 
-            min="0" max="100" value="0" 
-            class="flex-1 accent-primary bg-canvas-soft-2 border border-hairline h-1 rounded" 
-            aria-label="Rain volume slider"
-          />
-        </div>
-
-        <!-- Crackling Fire Volume -->
-        <div class="flex items-center gap-3">
-          <span class="text-xs text-body font-medium w-16 select-none">Fire Pops</span>
-          <input 
-            type="range" 
-            id="slider-fire" 
-            min="0" max="100" value="0" 
-            class="flex-1 accent-primary bg-canvas-soft-2 border border-hairline h-1 rounded" 
-            aria-label="Fire noise volume slider"
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: Controls Stack -->
+    <!-- Controls Stack -->
     <div class="flex flex-col gap-3 justify-center">
       <div class="flex items-center gap-3">
         <!-- Main Play/Pause Button -->
@@ -133,28 +116,30 @@
   // @ts-nocheck
   import { TodoStore } from '../scripts/store.js';
 
-  // Config bounds
-  let FOCUS_SECS = 25 * 60;
-  let BREAK_SECS = 5 * 60;
-  let LONG_SECS = 15 * 60;
+  // Config bounds with localStorage persistence helper
+  function getCustomTime(key, defaultVal) {
+    if (typeof window === 'undefined') return defaultVal;
+    return parseInt(localStorage.getItem(key) || defaultVal.toString());
+  }
+
+  let FOCUS_SECS = getCustomTime('vercel-custom-focus', 25 * 60);
+  let BREAK_SECS = getCustomTime('vercel-custom-break', 5 * 60);
+  let LONG_SECS = 15 * 60; // Standard 15m break remains standard or configurable
 
   let currentSecs = FOCUS_SECS;
   let isTimerRunning = false;
   let intervalId = null;
   let activeMode = 'focus'; // 'focus' | 'break'
 
-  // Web Audio Context Synthesizer variables
+  // Web Audio Context variables (Only for completion chime)
   let audioCtx = null;
-  let brownNoiseNode = null;
-  let rainNoiseNode = null;
-  let fireNoiseNode = null;
-  
-  let gainBrown = null;
-  let gainRain = null;
-  let gainFire = null;
 
   // DOM Elements selectors
   const clock = document.getElementById('imm-clock');
+  const clockDisplay = document.getElementById('imm-clock-display');
+  const editForm = document.getElementById('imm-edit-form');
+  const editInput = document.getElementById('imm-edit-input');
+  
   const taskSelect = document.getElementById('imm-task-select');
   const taskTitle = document.getElementById('imm-task-title');
   const statusDot = document.getElementById('imm-status-dot');
@@ -168,10 +153,6 @@
   const setFocusBtn = document.getElementById('btn-set-focus');
   const setBreakBtn = document.getElementById('btn-set-break');
   const setLongBtn = document.getElementById('btn-set-long');
-
-  const sliderBrown = document.getElementById('slider-brown');
-  const sliderRain = document.getElementById('slider-rain');
-  const sliderFire = document.getElementById('slider-fire');
 
   // Format Helper
   function format(seconds) {
@@ -222,7 +203,7 @@
       // Update page tab title to show remaining time
       const prefix = isTimerRunning ? `(${format(currentSecs)}) ` : '';
       const modeLabel = activeMode === 'focus' ? 'Focusing' : 'Break';
-      document.title = `${prefix}${modeLabel} - FocusFlow`;
+      document.title = `${prefix}${modeLabel} - Zenith`;
 
       // Apply pulsing red/teal color based on mode and timer status
       if (isTimerRunning) {
@@ -259,139 +240,19 @@
         controlLabel.textContent = 'Pause Focus';
       } else {
         playIcon.classList.remove('hidden');
+        playIcon.classList.remove('hidden');
         pauseIcon.classList.add('hidden');
         controlLabel.textContent = activeMode === 'focus' ? 'Start Focus' : 'Start Break';
       }
     }
   }
 
-  // ──────────────────────────────────────────────
-  // WEB AUDIO SYNTHESIZERS (AMBIENT NOISE ENGINES)
-  // ──────────────────────────────────────────────
-  function initAudioContext() {
-    if (audioCtx) return;
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // 1. Create Gain Nodes
-      gainBrown = audioCtx.createGain();
-      gainRain = audioCtx.createGain();
-      gainFire = audioCtx.createGain();
-      
-      gainBrown.gain.value = 0;
-      gainRain.gain.value = 0;
-      gainFire.gain.value = 0;
-      
-      gainBrown.connect(audioCtx.destination);
-      gainRain.connect(audioCtx.destination);
-      gainFire.connect(audioCtx.destination);
-
-      // 2. Synthesize Brown Noise (Deep Waterfall Wind)
-      const bufferSize = 2 * audioCtx.sampleRate;
-      const brownBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const bOutput = brownBuffer.getChannelData(0);
-      let lastOut = 0.0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        bOutput[i] = (lastOut + (0.02 * white)) / 1.02;
-        lastOut = bOutput[i];
-        bOutput[i] *= 3.5; // Amplify
-      }
-      
-      brownNoiseNode = audioCtx.createBufferSource();
-      brownNoiseNode.buffer = brownBuffer;
-      brownNoiseNode.loop = true;
-      brownNoiseNode.connect(gainBrown);
-      brownNoiseNode.start(0);
-
-      // 3. Synthesize Pink Noise for Rain
-      const pinkBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const pOutput = pinkBuffer.getChannelData(0);
-      let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        pOutput[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-        pOutput[i] *= 0.11; // normalise
-        b6 = white * 0.115926;
-      }
-      
-      // Add Band-Pass Filter to Pink Noise to mimic Rain falling on roof
-      const rainFilter = audioCtx.createBiquadFilter();
-      rainFilter.type = 'lowpass';
-      rainFilter.frequency.value = 800; // Low frequency wind/rain filter
-
-      rainNoiseNode = audioCtx.createBufferSource();
-      rainNoiseNode.buffer = pinkBuffer;
-      rainNoiseNode.loop = true;
-      rainNoiseNode.connect(rainFilter);
-      rainFilter.connect(gainRain);
-      rainNoiseNode.start(0);
-
-      // 4. Synthesize Campfire Crackling pops using a script processor or periodic pop scheduling
-      // We synthesize custom clicks/sparks using high-pass filters on random impulses
-      const fireFilter = audioCtx.createBiquadFilter();
-      fireFilter.type = 'highpass';
-      fireFilter.frequency.value = 3000; // clicks only
-      
-      const fireGainNode = audioCtx.createGain();
-      fireGainNode.gain.value = 0.25;
-
-      const fireBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const fOutput = fireBuffer.getChannelData(0);
-      // Generate very sparse click impulses to mimic crackling wood
-      for (let i = 0; i < bufferSize; i++) {
-        fOutput[i] = Math.random() < 0.00035 ? (Math.random() * 2 - 1) : 0;
-      }
-
-      fireNoiseNode = audioCtx.createBufferSource();
-      fireNoiseNode.buffer = fireBuffer;
-      fireNoiseNode.loop = true;
-      fireNoiseNode.connect(fireFilter);
-      fireFilter.connect(fireGainNode);
-      fireGainNode.connect(gainFire);
-      fireNoiseNode.start(0);
-
-    } catch (e) {
-      console.warn("Audio Synthesis initialization failed. Browser context blocked.", e);
-    }
-  }
-
-  // Adjust volume levels dynamically
-  function updateVolumes() {
-    if (!audioCtx) initAudioContext();
-    if (!audioCtx) return;
-    
-    // Resume audio context if suspended by browser security policy
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-
-    if (sliderBrown && gainBrown) {
-      gainBrown.gain.setValueAtTime(parseFloat(sliderBrown.value) / 200, audioCtx.currentTime); // cap max volume at 0.5
-    }
-    if (sliderRain && gainRain) {
-      gainRain.gain.setValueAtTime(parseFloat(sliderRain.value) / 200, audioCtx.currentTime);
-    }
-    if (sliderFire && gainFire) {
-      gainFire.gain.setValueAtTime(parseFloat(sliderFire.value) / 250, audioCtx.currentTime); // crackles stay softer
-    }
-  }
-
-  // Event listners for mixer volume adjustments
-  if (sliderBrown) sliderBrown.addEventListener('input', updateVolumes);
-  if (sliderRain) sliderRain.addEventListener('input', updateVolumes);
-  if (sliderFire) sliderFire.addEventListener('input', updateVolumes);
-
   // Synthesize notification chime on end
   function playCompletionChime() {
     try {
-      if (!audioCtx) initAudioContext();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
       if (!audioCtx) return;
       
       if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -412,7 +273,9 @@
       
       osc.start(audioCtx.currentTime);
       osc.stop(audioCtx.currentTime + 0.7);
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Chime failed", e);
+    }
   }
 
   // Timer logic
@@ -471,6 +334,8 @@
 
   function reset() {
     pause();
+    FOCUS_SECS = getCustomTime('vercel-custom-focus', 25 * 60);
+    BREAK_SECS = getCustomTime('vercel-custom-break', 5 * 60);
     currentSecs = activeMode === 'focus' ? FOCUS_SECS : BREAK_SECS;
     render();
     saveLocalState();
@@ -508,6 +373,9 @@
 
   function setTimerDuration(mode, secsVal = null) {
     activeMode = mode;
+    FOCUS_SECS = getCustomTime('vercel-custom-focus', 25 * 60);
+    BREAK_SECS = getCustomTime('vercel-custom-break', 5 * 60);
+    
     if (secsVal) {
       currentSecs = secsVal;
     } else {
@@ -581,6 +449,60 @@
     }
   }
 
+  // Bind Custom Timer click-to-edit triggers
+  if (clockDisplay && editForm && editInput) {
+    clockDisplay.addEventListener('click', () => {
+      if (isTimerRunning) return;
+      clockDisplay.classList.add('hidden');
+      editForm.classList.remove('hidden');
+      editForm.classList.add('flex');
+      editInput.value = Math.round(currentSecs / 60);
+      editInput.focus();
+      editInput.select();
+    });
+
+    editForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const mins = Math.max(1, Math.min(180, parseInt(editInput.value) || 25));
+      const secs = mins * 60;
+      
+      if (activeMode === 'focus') {
+        FOCUS_SECS = secs;
+        localStorage.setItem('vercel-custom-focus', secs.toString());
+      } else {
+        BREAK_SECS = secs;
+        localStorage.setItem('vercel-custom-break', secs.toString());
+      }
+      
+      currentSecs = secs;
+      
+      editForm.classList.add('hidden');
+      editForm.classList.remove('flex');
+      clockDisplay.classList.remove('hidden');
+      
+      render();
+      syncTimerToStoreState();
+    });
+
+    editInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        editForm.classList.add('hidden');
+        editForm.classList.remove('flex');
+        clockDisplay.classList.remove('hidden');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!editForm.contains(e.target) && !clockDisplay.contains(e.target)) {
+        if (!editForm.classList.contains('hidden')) {
+          editForm.classList.add('hidden');
+          editForm.classList.remove('flex');
+          clockDisplay.classList.remove('hidden');
+        }
+      }
+    });
+  }
+
   // Bind Buttons Click Listeners
   if (controlBtn) {
     controlBtn.addEventListener('click', () => {
@@ -594,8 +516,14 @@
 
   if (resetBtn) resetBtn.addEventListener('click', reset);
   
-  if (setFocusBtn) setFocusBtn.addEventListener('click', () => setTimerDuration('focus', FOCUS_SECS));
-  if (setBreakBtn) setBreakBtn.addEventListener('click', () => setTimerDuration('break', BREAK_SECS));
+  if (setFocusBtn) setFocusBtn.addEventListener('click', () => {
+    FOCUS_SECS = getCustomTime('vercel-custom-focus', 25 * 60);
+    setTimerDuration('focus', FOCUS_SECS);
+  });
+  if (setBreakBtn) setBreakBtn.addEventListener('click', () => {
+    BREAK_SECS = getCustomTime('vercel-custom-break', 5 * 60);
+    setTimerDuration('break', BREAK_SECS);
+  });
   if (setLongBtn) setLongBtn.addEventListener('click', () => setTimerDuration('break', LONG_SECS));
 
   if (taskSelect) {
@@ -615,11 +543,10 @@
     syncFromStoreState();
   });
 
-  // Watch tab switches to resume synthesized audio if active
+  // Watch tab switches
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash || '#dashboard';
     if (hash !== '#pomodoro' && isTimerRunning) {
-      // Keep timer ticking in background, but mute or pause synthesizer loops to preserve CPU cycles
       if (audioCtx && audioCtx.state === 'running') {
         audioCtx.suspend();
       }

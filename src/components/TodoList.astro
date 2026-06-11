@@ -2,38 +2,49 @@
 // TodoList.astro
 ---
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start" id="todo-workspace">
+<div class="w-full space-y-6" id="todo-workspace-container">
+  
+  <!-- Wide search bar spanning full width -->
+  <div class="relative bg-canvas border border-hairline rounded-lg p-4 shadow-level-2 w-full z-30">
+    <label for="todo-search" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-2">Search Backlog.</label>
+    <div class="relative">
+      <input 
+        type="text" 
+        id="todo-search" 
+        class="w-full bg-canvas-soft border border-hairline rounded-md pl-10 pr-8 py-2.5 text-xs sm:text-sm font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-10 transition-all text-ink"
+        placeholder="Filter tasks, or type / to execute commands (e.g. /new, /theme, /focus)…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-mute">
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <button 
+        id="todo-search-clear" 
+        class="absolute inset-y-0 right-0 pr-3 flex items-center text-mute hover:text-ink hidden cursor-pointer"
+        aria-label="Clear search query"
+      >
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Live Suggestions Dropdown List -->
+    <div 
+      id="todo-search-suggestions" 
+      class="absolute left-0 right-0 top-full mt-1.5 bg-canvas border border-hairline rounded-lg shadow-level-5 z-40 hidden overflow-hidden max-h-[300px] overflow-y-auto select-none p-1.5 space-y-0.5"
+    >
+      <!-- Suggestions injected dynamically -->
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start" id="todo-workspace">
   
   <!-- LEFT COLUMN: Filters Sidebar (4-span on desktop) -->
-  <aside class="lg:col-span-4 space-y-6 w-full lg:sticky lg:top-24">
-    
-    <!-- Quick Search bar -->
-    <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
-      <label for="todo-search" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-2">Search Backlog.</label>
-      <div class="relative">
-        <input 
-          type="text" 
-          id="todo-search" 
-          class="w-full bg-canvas-soft border border-hairline rounded-md pl-9 pr-8 py-1.5 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-9 transition-all"
-          placeholder="Filter by title, notes…"
-          autocomplete="off"
-        />
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-mute">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
-        <button 
-          id="todo-search-clear" 
-          class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-mute hover:text-ink hidden"
-          aria-label="Clear search query"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
+  <aside class="lg:col-span-4 space-y-6 w-full lg:sticky lg:top-24 order-2 lg:order-1">
 
     <!-- Status Filters (counts in tabular numbers) -->
     <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
@@ -100,7 +111,7 @@
   </aside>
 
   <!-- RIGHT COLUMN: Tasks List workspace (8-span on desktop) -->
-  <main class="lg:col-span-8 space-y-4 w-full">
+  <main class="lg:col-span-8 space-y-4 w-full order-1 lg:order-2">
     
     <!-- Controls Toolbar -->
     <div class="bg-canvas border border-hairline rounded-lg px-4 py-3 shadow-level-2 flex flex-wrap items-center justify-between gap-4">
@@ -153,6 +164,7 @@
     </div>
 
   </main>
+</div>
 </div>
 
 <!-- ============================================== -->
@@ -850,6 +862,189 @@
     }
   }
 
+  // Search & Suggestions Dropdown Engine
+  const suggestionsContainer = document.getElementById('todo-search-suggestions');
+  let activeSuggestIndex = -1;
+  let suggestionItems = [];
+
+  const commandActions = [
+    {
+      type: 'command',
+      command: '/new',
+      title: 'Create a new task…',
+      badge: '↵',
+      action: () => {
+        window.dispatchEvent(new CustomEvent('task-modal:open'));
+      }
+    },
+    {
+      type: 'command',
+      command: '/theme',
+      title: 'Toggle light & dark theme',
+      badge: 'T',
+      action: () => {
+        const next = TodoStore.getTheme() === 'dark' ? 'light' : 'dark';
+        TodoStore.setTheme(next);
+      }
+    },
+    {
+      type: 'command',
+      command: '/focus',
+      title: 'Switch to Focus Timer',
+      badge: 'F',
+      action: () => {
+        window.location.hash = '#pomodoro';
+      }
+    },
+    {
+      type: 'command',
+      command: '/analytics',
+      title: 'Switch to Analytics insights',
+      badge: 'A',
+      action: () => {
+        window.location.hash = '#analytics';
+      }
+    },
+    {
+      type: 'command',
+      command: '/backup',
+      title: 'Open Backup & Restore menu',
+      badge: 'B',
+      action: () => {
+        document.getElementById('backup-menu-trigger')?.click();
+      }
+    },
+    {
+      type: 'command',
+      command: '/clear',
+      title: 'Clear all completed tasks',
+      badge: 'C',
+      action: () => {
+        if (confirm('Are you sure you want to delete all completed tasks?')) {
+          const todos = TodoStore.getTodos();
+          const active = todos.filter(t => !t.completed);
+          TodoStore._save(active);
+          window.dispatchEvent(new CustomEvent('toast:show', {
+            detail: { message: 'Cleared completed tasks.', type: 'info' }
+          }));
+        }
+      }
+    }
+  ];
+
+  function showSuggestions() {
+    if (!suggestionsContainer) return;
+    const val = searchInput ? searchInput.value.trim() : '';
+
+    if (!val) {
+      suggestionItems = commandActions;
+    } else if (val.startsWith('/')) {
+      suggestionItems = commandActions.filter(cmd => 
+        cmd.command.toLowerCase().startsWith(val.toLowerCase()) ||
+        cmd.title.toLowerCase().includes(val.toLowerCase())
+      );
+    } else {
+      const todos = TodoStore.getTodos();
+      suggestionItems = todos
+        .filter(todo => 
+          todo.title.toLowerCase().includes(val.toLowerCase()) ||
+          (todo.notes && todo.notes.toLowerCase().includes(val.toLowerCase()))
+        )
+        .map(todo => ({
+          type: 'task',
+          id: todo.id,
+          title: todo.title,
+          subtitle: `#${todo.category} • ${todo.priority.toUpperCase()} priority`,
+          action: () => {
+            expandedTodoIds.add(todo.id);
+            TodoStore.setActiveFocusTodoId(todo.id);
+            setTimeout(() => {
+              const el = document.querySelector(`[data-todo-id="${todo.id}"]`);
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+            window.dispatchEvent(new CustomEvent('toast:show', {
+              detail: { message: `Locked focus onto task: "${todo.title}"`, type: 'success' }
+            }));
+          }
+        }));
+    }
+
+    if (suggestionItems.length === 0) {
+      suggestionsContainer.classList.add('hidden');
+      return;
+    }
+
+    suggestionsContainer.classList.remove('hidden');
+    
+    if (activeSuggestIndex >= suggestionItems.length) {
+      activeSuggestIndex = suggestionItems.length - 1;
+    }
+    if (activeSuggestIndex < -1) {
+      activeSuggestIndex = -1;
+    }
+
+    suggestionsContainer.innerHTML = suggestionItems.map((item, idx) => {
+      const isActive = idx === activeSuggestIndex;
+      const activeClass = isActive ? 'bg-canvas-soft-2 text-ink border border-hairline/60' : 'text-body hover:bg-canvas-soft-2/50 border border-transparent';
+      
+      let icon = '';
+      if (item.type === 'command') {
+        icon = `
+          <svg class="h-4 w-4 text-brand-pink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        `;
+      } else {
+        icon = `
+          <svg class="h-4 w-4 text-mute/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        `;
+      }
+
+      const badgeHtml = item.badge ? `<kbd class="ml-auto font-mono text-[9px] text-mute border border-hairline/80 px-1 py-0.5 rounded bg-canvas shadow-xs select-none">${item.badge}</kbd>` : '';
+      const subtitleHtml = item.subtitle ? `<span class="text-[10px] text-mute/80 ml-2 block truncate">${item.subtitle}</span>` : '';
+      const titleText = item.type === 'command' ? `<span class="font-mono text-brand-pink text-xs mr-1.5">${item.command}</span> <span class="text-xs font-medium font-sans text-ink">${item.title}</span>` : `<span class="text-xs font-medium font-sans text-ink truncate">${item.title}</span>`;
+
+      return `
+        <div 
+          data-suggest-idx="${idx}"
+          class="flex items-center gap-2.5 px-3 py-1.5 rounded-md cursor-pointer transition-all duration-150 ${activeClass}"
+          role="option"
+          aria-selected="${isActive ? 'true' : 'false'}"
+        >
+          <div class="flex-shrink-0">${icon}</div>
+          <div class="flex-grow min-w-0 flex items-baseline">
+            ${titleText}
+            ${subtitleHtml}
+          </div>
+          ${badgeHtml}
+        </div>
+      `;
+    }).join('');
+
+    const els = suggestionsContainer.querySelectorAll('[data-suggest-idx]');
+    els.forEach(el => {
+      el.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const idx = parseInt(el.getAttribute('data-suggest-idx'));
+        executeSuggestion(suggestionItems[idx]);
+      });
+    });
+  }
+
+  function executeSuggestion(item) {
+    if (!item) return;
+    item.action();
+    if (searchInput) {
+      searchInput.value = '';
+      searchQuery = '';
+      if (searchClearBtn) searchClearBtn.classList.add('hidden');
+    }
+    if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+    renderList();
+  }
+
   // Search Input triggers
   if (searchInput) {
     searchInput.addEventListener('input', () => {
@@ -859,7 +1054,56 @@
       } else {
         if (searchClearBtn) searchClearBtn.classList.add('hidden');
       }
+      activeSuggestIndex = -1;
+      showSuggestions();
       renderList();
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (suggestionsContainer && suggestionsContainer.classList.contains('hidden')) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          showSuggestions();
+          return;
+        }
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (suggestionItems.length > 0) {
+          activeSuggestIndex = (activeSuggestIndex + 1) % suggestionItems.length;
+          showSuggestions();
+          const activeEl = suggestionsContainer.querySelector(`[data-suggest-idx="${activeSuggestIndex}"]`);
+          activeEl?.scrollIntoView({ block: 'nearest' });
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (suggestionItems.length > 0) {
+          activeSuggestIndex = (activeSuggestIndex - 1 + suggestionItems.length) % suggestionItems.length;
+          showSuggestions();
+          const activeEl = suggestionsContainer.querySelector(`[data-suggest-idx="${activeSuggestIndex}"]`);
+          activeEl?.scrollIntoView({ block: 'nearest' });
+        }
+      } else if (e.key === 'Enter') {
+        if (activeSuggestIndex !== -1 && suggestionItems[activeSuggestIndex]) {
+          e.preventDefault();
+          executeSuggestion(suggestionItems[activeSuggestIndex]);
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+        searchInput.blur();
+      }
+    });
+
+    searchInput.addEventListener('focus', () => {
+      activeSuggestIndex = -1;
+      showSuggestions();
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
+      }, 200);
     });
   }
 
@@ -868,6 +1112,7 @@
       if (searchInput) searchInput.value = '';
       searchQuery = '';
       searchClearBtn.classList.add('hidden');
+      if (suggestionsContainer) suggestionsContainer.classList.add('hidden');
       renderList();
     });
   }

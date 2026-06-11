@@ -43,10 +43,35 @@
     </div>
 
     <!-- Clock Display -->
-    <div class="mt-8 flex justify-center items-center">
-      <span id="timer-clock" class="font-mono text-6xl font-bold tracking-tighter tabular-nums text-on-primary select-none drop-shadow-md">
-        25:00
-      </span>
+    <div class="mt-8 flex flex-col justify-center items-center">
+      <div id="timer-clock-display" class="relative group cursor-pointer hover:bg-on-primary/10 rounded-lg px-4 py-1.5 transition-all" title="Click to set custom timer duration">
+        <span id="timer-clock" class="font-mono text-6xl font-bold tracking-tighter tabular-nums text-on-primary select-none drop-shadow-md">
+          25:00
+        </span>
+        <!-- Small edit pencil indicator -->
+        <span class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity text-on-primary/70 bg-primary/80 border border-on-primary/10 p-1 rounded-full shadow-sm scale-75">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </span>
+      </div>
+      
+      <!-- Edit form, hidden by default -->
+      <form id="timer-edit-form" class="hidden justify-center items-center gap-1.5 mt-1">
+        <input 
+          type="number" 
+          id="timer-edit-input" 
+          min="1" max="180" 
+          class="w-24 bg-on-primary/10 border border-on-primary/25 rounded-md text-4xl font-mono font-bold text-on-primary text-center focus:ring-1 focus:ring-on-primary focus:outline-none py-1 focus:bg-on-primary/20"
+          value="25"
+        />
+        <span class="text-xs text-on-primary/70 font-mono font-semibold">MIN</span>
+        <button type="submit" class="ml-2 p-1.5 rounded-full bg-on-primary text-primary hover:scale-105 active:scale-95 transition-all text-xs font-bold cursor-pointer" aria-label="Save time">
+          <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </button>
+      </form>
     </div>
   </div>
 
@@ -103,9 +128,14 @@
   // @ts-nocheck
   import { TodoStore } from '../scripts/store.js';
 
-  // Config variables
-  const FOCUS_TIME = 25 * 60; // 25 mins
-  const BREAK_TIME = 5 * 60;  // 5 mins
+  // Config variables with localStorage persistence helper
+  function getCustomTime(key, defaultVal) {
+    if (typeof window === 'undefined') return defaultVal;
+    return parseInt(localStorage.getItem(key) || defaultVal.toString());
+  }
+
+  let FOCUS_TIME = getCustomTime('vercel-custom-focus', 25 * 60); // default 25 mins
+  let BREAK_TIME = getCustomTime('vercel-custom-break', 5 * 60);  // default 5 mins
   
   let currentMode = 'focus'; // 'focus' | 'break'
   let secondsRemaining = FOCUS_TIME;
@@ -117,6 +147,9 @@
   // DOM Elements
   const timerContainer = document.getElementById('timer-container');
   const timerClock = document.getElementById('timer-clock');
+  const timerClockDisplay = document.getElementById('timer-clock-display');
+  const timerEditForm = document.getElementById('timer-edit-form');
+  const timerEditInput = document.getElementById('timer-edit-input');
   const timerTaskTitle = document.getElementById('timer-task-title');
   const timerStatusDot = document.getElementById('timer-status-dot');
   const timerStatusText = document.getElementById('timer-status-text');
@@ -174,7 +207,7 @@
       // Update page tab title to show remaining time
       const prefix = isRunning ? `(${formatTime(secondsRemaining)}) ` : '';
       const modeLabel = currentMode === 'focus' ? 'Focus' : 'Break';
-      document.title = `${prefix}${modeLabel} - FocusFlow`;
+      document.title = `${prefix}${modeLabel} - Zenith`;
     }
 
     if (timerStatusText) {
@@ -241,6 +274,8 @@
   // Switch modes: Work vs Break
   function setMode(mode) {
     currentMode = mode;
+    FOCUS_TIME = getCustomTime('vercel-custom-focus', 25 * 60);
+    BREAK_TIME = getCustomTime('vercel-custom-break', 5 * 60);
     secondsRemaining = mode === 'focus' ? FOCUS_TIME : BREAK_TIME;
     
     if (modeFocusBtn && modeBreakBtn) {
@@ -318,6 +353,8 @@
 
   function resetTimer() {
     pauseTimer();
+    FOCUS_TIME = getCustomTime('vercel-custom-focus', 25 * 60);
+    BREAK_TIME = getCustomTime('vercel-custom-break', 5 * 60);
     secondsRemaining = currentMode === 'focus' ? FOCUS_TIME : BREAK_TIME;
     renderTimer();
     saveState();
@@ -356,6 +393,63 @@
       }));
       setMode('focus');
     }
+  }
+
+  // Bind Custom Timer click-to-edit trigger
+  if (timerClockDisplay && timerEditForm && timerEditInput) {
+    timerClockDisplay.addEventListener('click', () => {
+      if (isRunning) return;
+      timerClockDisplay.classList.add('hidden');
+      timerEditForm.classList.remove('hidden');
+      timerEditForm.classList.add('flex');
+      timerEditInput.value = Math.round(secondsRemaining / 60);
+      timerEditInput.focus();
+      timerEditInput.select();
+    });
+
+    timerEditForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const mins = Math.max(1, Math.min(180, parseInt(timerEditInput.value) || 25));
+      const secs = mins * 60;
+      
+      if (currentMode === 'focus') {
+        FOCUS_TIME = secs;
+        localStorage.setItem('vercel-custom-focus', secs.toString());
+      } else {
+        BREAK_TIME = secs;
+        localStorage.setItem('vercel-custom-break', secs.toString());
+      }
+      
+      secondsRemaining = secs;
+      
+      timerEditForm.classList.add('hidden');
+      timerEditForm.classList.remove('flex');
+      timerClockDisplay.classList.remove('hidden');
+      
+      renderTimer();
+      saveState();
+      
+      // Notify other parts of the app
+      window.dispatchEvent(new CustomEvent('todo:change'));
+    });
+
+    timerEditInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        timerEditForm.classList.add('hidden');
+        timerEditForm.classList.remove('flex');
+        timerClockDisplay.classList.remove('hidden');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!timerEditForm.contains(e.target) && !timerClockDisplay.contains(e.target)) {
+        if (!timerEditForm.classList.contains('hidden')) {
+          timerEditForm.classList.add('hidden');
+          timerEditForm.classList.remove('flex');
+          timerClockDisplay.classList.remove('hidden');
+        }
+      }
+    });
   }
 
   // Bind Buttons Click Listeners
@@ -398,6 +492,9 @@
   function restoreTimerState() {
     syncLockedTask();
     
+    FOCUS_TIME = getCustomTime('vercel-custom-focus', 25 * 60);
+    BREAK_TIME = getCustomTime('vercel-custom-break', 5 * 60);
+    
     const saved = TodoStore.getTimerState();
     if (saved) {
       currentMode = saved.currentMode || 'focus';
@@ -428,7 +525,19 @@
     resetTimer();
   });
 
-  window.addEventListener('todo:change', syncLockedTask);
+  window.addEventListener('todo:change', () => {
+    syncLockedTask();
+    
+    // Dynamically sync clock and settings if another timer updated them
+    const saved = TodoStore.getTimerState();
+    if (saved && !isRunning) {
+      currentMode = saved.currentMode || 'focus';
+      FOCUS_TIME = getCustomTime('vercel-custom-focus', 25 * 60);
+      BREAK_TIME = getCustomTime('vercel-custom-break', 5 * 60);
+      secondsRemaining = saved.secondsRemaining;
+      renderTimer();
+    }
+  });
 
   // Initialize
   restoreTimerState();
