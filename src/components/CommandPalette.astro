@@ -1,0 +1,362 @@
+---
+// CommandPalette.astro
+---
+
+<div 
+  id="command-palette" 
+  class="fixed inset-0 z-50 hidden items-start justify-center pt-[10vh] px-4 sm:px-6"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="cmd-palette-input"
+>
+  <!-- Blurred Backdrop overlay -->
+  <div id="cmd-palette-backdrop" class="fixed inset-0 bg-canvas-soft/40 dark:bg-canvas-soft/60 backdrop-blur-sm transition-opacity duration-200"></div>
+
+  <!-- Command Window Surface (Level 5 shadow) -->
+  <div class="relative w-full max-w-md overflow-hidden rounded-lg border border-hairline bg-canvas shadow-level-5 transition-all flex flex-col max-h-[60vh]">
+    
+    <!-- Search Row -->
+    <div class="flex items-center border-b border-hairline px-5 bg-canvas h-14">
+      <svg class="h-5 w-5 text-mute/80 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input 
+        type="text" 
+        id="cmd-palette-input" 
+        class="ml-3.5 w-full bg-transparent border-0 text-ink placeholder-mute/65 focus:ring-0 text-sm font-sans focus:outline-none"
+        placeholder="Type a command or search tasks…"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <!-- Close button hint -->
+      <button 
+        id="cmd-palette-close"
+        class="ml-2 px-1.5 py-0.5 border border-hairline rounded text-[10px] text-mute hover:text-ink font-mono font-medium shadow-xs bg-canvas-soft-2 hover:bg-canvas-soft transition-all focus:outline-none cursor-pointer"
+        aria-label="Close command palette"
+      >
+        ESC
+      </button>
+    </div>
+
+    <!-- Suggestion Container -->
+    <div id="cmd-palette-results" class="overflow-y-auto flex-1 p-2 space-y-0.5 select-none bg-canvas">
+      <!-- Suggestions will be injected here dynamically -->
+    </div>
+
+    <!-- Monospace footer help -->
+    <div class="border-t border-hairline bg-canvas-soft px-4 py-2 flex items-center justify-between text-[10px] text-mute font-mono">
+      <div class="flex items-center gap-3">
+        <span><kbd class="border border-hairline px-1 rounded bg-canvas font-medium">↑↓</kbd> Navigate</span>
+        <span><kbd class="border border-hairline px-1 rounded bg-canvas font-medium">↵</kbd> Select</span>
+      </div>
+      <div>
+        <span>Type <code class="text-brand-pink font-semibold">/</code> for commands</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  const palette = document.getElementById('command-palette');
+  const backdrop = document.getElementById('cmd-palette-backdrop');
+  const input = document.getElementById('cmd-palette-input') as HTMLInputElement;
+  const resultsContainer = document.getElementById('cmd-palette-results');
+  const closeBtn = document.getElementById('cmd-palette-close');
+  const headerTrigger = document.getElementById('cmd-palette-trigger');
+
+  let activeIndex = -1;
+  let itemsList = []; // Holds active elements of { type, group, id, title, subtitle, badge, icon, action }
+
+  // Open the palette
+  function openPalette() {
+    if (!palette) return;
+    palette.classList.remove('hidden');
+    palette.classList.add('flex');
+    document.body.classList.add('overflow-hidden'); // Lock background scroll
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    activeIndex = -1;
+    renderSuggestions();
+  }
+
+  // Close the palette
+  function closePalette() {
+    if (!palette) return;
+    palette.classList.add('hidden');
+    palette.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  // Execute the selected action
+  function executeItem(item) {
+    if (!item) return;
+
+    if (item.type === 'action' || item.type === 'nav') {
+      item.action();
+    } else if (item.type === 'task') {
+      // Lock onto task for Focus Mode
+      TodoStore.setActiveFocusTodoId(item.id);
+      window.dispatchEvent(new CustomEvent('toast:show', {
+        detail: { message: `Locked onto task: "${item.title}"`, type: 'success' }
+      }));
+    }
+    closePalette();
+  }
+
+  // Generate lists of items based on input value
+  function renderSuggestions() {
+    if (!resultsContainer) return;
+    const value = input ? input.value.trim() : '';
+
+    // Grouped default commands list matching user references
+    const defaultCommands = [
+      {
+        type: 'action',
+        id: 'cmd-new',
+        group: 'ACTIONS',
+        command: '/new',
+        title: 'Create a new task…',
+        badge: '↵',
+        action: () => {
+          window.dispatchEvent(new CustomEvent('task-modal:open'));
+        }
+      },
+      {
+        type: 'action',
+        id: 'cmd-theme',
+        group: 'ACTIONS',
+        command: '/theme',
+        title: 'Toggle light & dark theme',
+        badge: 'T',
+        action: () => {
+          const next = TodoStore.getTheme() === 'dark' ? 'light' : 'dark';
+          TodoStore.setTheme(next);
+        }
+      },
+      {
+        type: 'nav',
+        id: 'nav-dashboard',
+        group: 'NAVIGATION',
+        title: 'View Dashboard Analytics',
+        badge: '1',
+        icon: `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"/></svg>`,
+        action: () => {
+          window.location.hash = '#dashboard';
+        }
+      },
+      {
+        type: 'nav',
+        id: 'nav-focus',
+        group: 'NAVIGATION',
+        title: 'View Focus Timer',
+        badge: '2',
+        icon: `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+        action: () => {
+          window.location.hash = '#pomodoro';
+        }
+      },
+      {
+        type: 'nav',
+        id: 'nav-analytics',
+        group: 'NAVIGATION',
+        title: 'View Analytics Logs',
+        badge: '3',
+        icon: `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"/></svg>`,
+        action: () => {
+          window.location.hash = '#analytics';
+        }
+      }
+    ];
+
+    const todos = TodoStore.getTodos();
+
+    if (value.startsWith('/')) {
+      // Commands search filter
+      itemsList = defaultCommands.filter(cmd => 
+        cmd.command.toLowerCase().includes(value.toLowerCase()) ||
+        cmd.title.toLowerCase().includes(value.toLowerCase())
+      );
+    } else {
+      // Normal search mode matching tasks
+      const searchTasks = todos
+        .filter(todo => 
+          todo.title.toLowerCase().includes(value.toLowerCase()) ||
+          (todo.notes && todo.notes.toLowerCase().includes(value.toLowerCase()))
+        )
+        .map(todo => ({
+          type: 'task',
+          id: todo.id,
+          group: 'TASKS SEARCH',
+          title: todo.title,
+          subtitle: `Lock task to Focus Timer • ${todo.priority.toUpperCase()} priority • ${todo.category}`,
+          icon: `<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+          action: null
+        }));
+
+      const matchingCommands = defaultCommands.filter(cmd => 
+        value && cmd.title.toLowerCase().includes(value.toLowerCase())
+      );
+
+      itemsList = [...matchingCommands, ...searchTasks];
+      
+      // If no query, show commands default guide
+      if (!value) {
+        itemsList = defaultCommands;
+      }
+    }
+
+    // Handle index bounds
+    if (activeIndex >= itemsList.length) activeIndex = itemsList.length - 1;
+    if (activeIndex < 0 && itemsList.length > 0) activeIndex = 0;
+    if (itemsList.length === 0) activeIndex = -1;
+
+    // Build DOM
+    if (itemsList.length === 0) {
+      resultsContainer.innerHTML = `
+        <div class="px-4 py-8 text-center text-xs text-mute">
+          No matches found for <code class="text-brand-pink font-semibold">"${value}"</code>.
+        </div>
+      `;
+      return;
+    }
+
+    resultsContainer.innerHTML = itemsList.map((item, idx) => {
+      const isActive = idx === activeIndex;
+      const bgClass = isActive ? 'bg-canvas-soft text-ink border border-hairline/40' : 'text-body hover:bg-canvas-soft-2/50 border border-transparent';
+      
+      // Render Group Header if it is the first item in the group
+      let headerHtml = '';
+      if (idx === 0 || item.group !== itemsList[idx - 1].group) {
+        headerHtml = `<div class="px-2 pt-3 pb-1.5 font-mono text-[9px] font-bold tracking-wider text-mute/80 uppercase select-none">${item.group}</div>`;
+      }
+
+      // Title layout with command code prefix
+      let titleHtml = '';
+      if (item.command) {
+        titleHtml = `<span class="font-mono text-mute text-xs mr-2 selection:bg-transparent">${item.command}</span><span class="text-xs font-semibold font-sans text-ink">${item.title}</span>`;
+      } else {
+        titleHtml = `<span class="text-xs font-semibold font-sans text-ink">${item.title}</span>`;
+      }
+
+      // Icon element
+      const iconHtml = item.icon ? `<div class="flex-shrink-0 text-mute/70">${item.icon}</div>` : '';
+
+      // Right-aligned badge
+      const badgeHtml = item.badge ? `<kbd class="ml-auto font-mono text-[9px] text-mute border border-hairline/80 px-1 py-0.5 rounded bg-canvas shadow-sm select-none">${item.badge}</kbd>` : '';
+
+      return `
+        ${headerHtml}
+        <div 
+          data-index="${idx}"
+          class="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-all duration-150 ${bgClass}"
+          role="option"
+          aria-selected="${isActive ? 'true' : 'false'}"
+        >
+          ${iconHtml}
+          <div class="flex-grow min-w-0">
+            <div class="truncate flex items-center">${titleHtml}</div>
+          </div>
+          ${badgeHtml}
+        </div>
+      `;
+    }).join('');
+
+    // Add click listeners to items
+    const renderedItems = resultsContainer.querySelectorAll('[data-index]');
+    renderedItems.forEach(element => {
+      element.addEventListener('click', () => {
+        const idx = parseInt(element.getAttribute('data-index'));
+        executeItem(itemsList[idx]);
+      });
+    });
+  }
+
+  // Keyboard shortcut bounds
+  window.addEventListener('keydown', (e) => {
+    // Open: Cmd+K or Ctrl+K
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      openPalette();
+    }
+
+    if (!palette || palette.classList.contains('hidden')) return;
+
+    // Close: Escape
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closePalette();
+    }
+
+    // Direct hotkeys inside command palette triggers
+    const key = e.key.toLowerCase();
+    if (key === 't' && input && !input.value) {
+      e.preventDefault();
+      const next = TodoStore.getTheme() === 'dark' ? 'light' : 'dark';
+      TodoStore.setTheme(next);
+      closePalette();
+    }
+    if (key === '1' && input && !input.value) {
+      e.preventDefault();
+      window.location.hash = '#dashboard';
+      closePalette();
+    }
+    if (key === '2' && input && !input.value) {
+      e.preventDefault();
+      window.location.hash = '#pomodoro';
+      closePalette();
+    }
+    if (key === '3' && input && !input.value) {
+      e.preventDefault();
+      window.location.hash = '#analytics';
+      closePalette();
+    }
+
+    // Navigate: Down
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (itemsList.length > 0) {
+        activeIndex = (activeIndex + 1) % itemsList.length;
+        renderSuggestions();
+        const activeEl = resultsContainer.querySelector(`[data-index="${activeIndex}"]`);
+        if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // Navigate: Up
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (itemsList.length > 0) {
+        activeIndex = (activeIndex - 1 + itemsList.length) % itemsList.length;
+        renderSuggestions();
+        const activeEl = resultsContainer.querySelector(`[data-index="${activeIndex}"]`);
+        if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // Submit: Enter
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeIndex !== -1 && itemsList[activeIndex]) {
+        executeItem(itemsList[activeIndex]);
+      }
+    }
+  });
+
+  // Attach search triggers
+  if (input) {
+    input.addEventListener('input', () => {
+      activeIndex = 0; // Reset index on type
+      renderSuggestions();
+    });
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', closePalette);
+  if (backdrop) backdrop.addEventListener('click', closePalette);
+  if (headerTrigger) headerTrigger.addEventListener('click', openPalette);
+</script>

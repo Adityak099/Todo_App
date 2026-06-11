@@ -1,0 +1,381 @@
+---
+// TaskModal.astro
+---
+
+<div 
+  id="task-modal" 
+  class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="task-modal-title"
+>
+  <!-- Backdrop -->
+  <div id="task-modal-backdrop" class="fixed inset-0 bg-canvas-soft/40 dark:bg-canvas-soft/60 backdrop-blur-sm transition-opacity duration-200"></div>
+
+  <!-- Dialog Window Surface (Level 5 shadow) -->
+  <div class="relative w-full max-w-lg overflow-hidden rounded-lg border border-hairline bg-canvas shadow-level-5 transition-all p-6 flex flex-col gap-4">
+    
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between border-b border-hairline pb-3">
+      <h2 id="task-modal-title" class="font-sans text-base font-semibold text-ink">Create new task.</h2>
+      <button 
+        id="task-modal-close"
+        class="text-mute hover:text-ink focus:outline-none transition-colors"
+        aria-label="Close dialog"
+      >
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Form Container -->
+    <form id="task-modal-form" class="space-y-4">
+      
+      <!-- TITLE field -->
+      <div>
+        <label for="modal-task-title" class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Title</label>
+        <input 
+          type="text" 
+          id="modal-task-title" 
+          name="title"
+          required
+          class="w-full bg-canvas text-ink border border-hairline rounded px-3 py-2 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-1 focus:ring-brand-link/25 h-9 transition-all"
+          placeholder="Write features documentation…"
+        />
+      </div>
+
+      <!-- DESCRIPTION field -->
+      <div>
+        <label for="modal-task-notes" class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Description</label>
+        <textarea 
+          id="modal-task-notes" 
+          name="notes"
+          rows="2"
+          class="w-full bg-canvas text-ink border border-hairline rounded px-3 py-2 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-1 focus:ring-brand-link/25 transition-all resize-y min-h-[56px]"
+          placeholder="Provide description or links for references…"
+        ></textarea>
+      </div>
+
+      <!-- Row parameters: Project, Priority, Due Date -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- PROJECT/LIST select -->
+        <div>
+          <label for="modal-task-project" class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Project/List</label>
+          <select 
+            id="modal-task-project" 
+            name="category"
+            class="w-full bg-canvas text-ink border border-hairline rounded px-2.5 py-1.5 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-link cursor-pointer h-8 transition-all"
+          >
+            <option value="Work">Work</option>
+            <option value="Personal">Personal</option>
+            <option value="Health">Health</option>
+            <option value="Finance">Finance</option>
+          </select>
+        </div>
+
+        <!-- PRIORITY custom toggle buttons -->
+        <div>
+          <span class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Priority</span>
+          <div class="flex items-center rounded border border-hairline p-0.5 h-8 bg-canvas-soft-2/40" role="radiogroup" aria-label="Task Priority">
+            <input type="radio" id="modal-priority-low" name="priority" value="low" class="sr-only" />
+            <button 
+              type="button" 
+              data-priority="low" 
+              class="modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all text-body"
+            >
+              Low
+            </button>
+
+            <input type="radio" id="modal-priority-medium" name="priority" value="medium" class="sr-only" checked />
+            <button 
+              type="button" 
+              data-priority="medium" 
+              class="modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all bg-warning-soft text-warning-deep border border-warning-deep/10 shadow-sm"
+            >
+              Med
+            </button>
+
+            <input type="radio" id="modal-priority-high" name="priority" value="high" class="sr-only" />
+            <button 
+              type="button" 
+              data-priority="high" 
+              class="modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all text-body"
+            >
+              High
+            </button>
+          </div>
+        </div>
+
+        <!-- DUE DATE calendar picker -->
+        <div>
+          <label for="modal-task-date" class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Due Date</label>
+          <input 
+            type="date" 
+            id="modal-task-date" 
+            name="dueDate"
+            class="w-full bg-canvas text-ink border border-hairline rounded px-2 py-1 text-xs font-sans focus:outline-none focus:ring-1 focus:ring-brand-link h-8 transition-all"
+          />
+        </div>
+      </div>
+
+      <!-- TAGS (COMMA SEPARATED) input -->
+      <div>
+        <label for="modal-task-tags" class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Tags (Comma Separated)</label>
+        <input 
+          type="text" 
+          id="modal-task-tags" 
+          name="tagsString"
+          class="w-full bg-canvas text-ink border border-hairline rounded px-3 py-1.5 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-1 focus:ring-brand-link/25 h-8 transition-all"
+          placeholder="feature, documentation, docs"
+        />
+      </div>
+
+      <!-- SUBTASKS / CHECKLIST inline builder inside modal -->
+      <div>
+        <span class="block font-mono text-[9px] font-semibold uppercase tracking-wider text-mute mb-1.5">Subtasks / Checklist</span>
+        <div id="modal-subtasks-list" class="space-y-1 max-h-[80px] overflow-y-auto mb-2 select-none">
+          <!-- Subtasks injected here -->
+        </div>
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            id="modal-subtask-input" 
+            class="flex-1 bg-canvas border border-hairline rounded px-3.5 py-1 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link h-8 transition-all"
+            placeholder="Add checklist item…"
+          />
+          <button 
+            type="button" 
+            id="modal-subtask-add"
+            class="h-8 w-8 rounded border border-hairline hover:bg-canvas-soft bg-canvas flex items-center justify-center text-body hover:text-ink cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-link"
+            aria-label="Add subtask"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- FOOTER buttons -->
+      <div class="border-t border-hairline pt-4 flex items-center justify-end gap-3.5">
+        <button 
+          type="button" 
+          id="task-modal-cancel" 
+          class="px-4 py-2 border border-hairline hover:bg-canvas-soft rounded-full text-xs font-medium text-body hover:text-ink cursor-pointer focus:outline-none transition-all"
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="h-9 px-5 rounded-full bg-primary text-on-primary font-sans text-xs font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink shadow-sm"
+        >
+          Save task
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  const modal = document.getElementById('task-modal');
+  const backdrop = document.getElementById('task-modal-backdrop');
+  const closeBtn = document.getElementById('task-modal-close');
+  const cancelBtn = document.getElementById('task-modal-cancel');
+  const form = document.getElementById('task-modal-form') as HTMLFormElement;
+  
+  const priorityBtns = document.querySelectorAll('.modal-priority-btn');
+  const subtaskAddBtn = document.getElementById('modal-subtask-add');
+  const subtaskInput = document.getElementById('modal-subtask-input') as HTMLInputElement;
+  const subtasksList = document.getElementById('modal-subtasks-list');
+
+  let pendingSubtasks = []; // Cache list of added checklist items before task save
+
+  // Handle priority button selector highlights
+  priorityBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const priority = btn.getAttribute('data-priority');
+      
+      // Update hidden radio inputs
+      const radio = document.getElementById(`modal-priority-${priority}`) as HTMLInputElement;
+      if (radio) radio.checked = true;
+
+      // Update styling states
+      priorityBtns.forEach(b => {
+        b.className = "modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all text-body";
+      });
+
+      const colors = {
+        low: 'bg-canvas text-ink border border-hairline/80 shadow-sm',
+        medium: 'bg-warning-soft text-warning-deep border border-warning-deep/10 shadow-sm',
+        high: 'bg-error-soft text-error-deep border border-error-deep/10 shadow-sm'
+      };
+
+      btn.className = `modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all ${colors[priority]}`;
+    });
+  });
+
+  // Checklist renderer
+  function renderSubtasks() {
+    if (!subtasksList) return;
+    if (pendingSubtasks.length === 0) {
+      subtasksList.innerHTML = '';
+      return;
+    }
+
+    subtasksList.innerHTML = pendingSubtasks.map((title, idx) => `
+      <div class="flex items-center justify-between bg-canvas-soft border border-hairline rounded px-2.5 py-1 text-[11px] text-ink font-sans">
+        <span class="truncate pr-4">${title}</span>
+        <button 
+          type="button" 
+          data-index="${idx}"
+          class="text-mute hover:text-error focus:outline-none"
+          aria-label="Remove checklist item"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    `).join('');
+
+    const deleteBtns = subtasksList.querySelectorAll('button[data-index]');
+    deleteBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.getAttribute('data-index'));
+        pendingSubtasks.splice(index, 1);
+        renderSubtasks();
+      });
+    });
+  }
+
+  function addSubtask() {
+    if (!subtaskInput) return;
+    const title = subtaskInput.value.trim();
+    if (title) {
+      pendingSubtasks.push(title);
+      subtaskInput.value = '';
+      renderSubtasks();
+    }
+  }
+
+  if (subtaskAddBtn) subtaskAddBtn.addEventListener('click', addSubtask);
+  if (subtaskInput) {
+    subtaskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addSubtask();
+      }
+    });
+  }
+
+  // Open modal
+  function openModal() {
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.classList.add('overflow-hidden');
+      
+      // Reset form controls
+      if (form) form.reset();
+      pendingSubtasks = [];
+      renderSubtasks();
+
+      // Reset priority buttons to Med default
+      priorityBtns.forEach(b => {
+        const p = b.getAttribute('data-priority');
+        if (p === 'medium') {
+          b.className = "modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all bg-warning-soft text-warning-deep border border-warning-deep/10 shadow-sm";
+        } else {
+          b.className = "modal-priority-btn flex-1 text-center py-1 rounded text-[10px] font-semibold focus:outline-none transition-all text-body";
+        }
+      });
+      const medRadio = document.getElementById('modal-priority-medium') as HTMLInputElement;
+      if (medRadio) medRadio.checked = true;
+
+      // Focus title
+      const titleField = document.getElementById('modal-task-title');
+      if (titleField) titleField.focus();
+    }
+  }
+
+  // Close modal
+  function closeModal() {
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      document.body.classList.remove('overflow-hidden');
+    }
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  if (backdrop) backdrop.addEventListener('click', closeModal);
+
+  // Keyboard shortcut bounds
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+      closeModal();
+    }
+  });
+
+  // Listen to custom open events
+  window.addEventListener('task-modal:open', openModal);
+
+  // Submit action
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const title = (formData.get('title') as string).trim();
+      const notes = (formData.get('notes') as string).trim();
+      
+      // Retrieve checked radio value safely
+      let priority = 'medium';
+      const checkedRadio = form.querySelector('input[name="priority"]:checked') as HTMLInputElement;
+      if (checkedRadio) priority = checkedRadio.value;
+
+      const category = formData.get('category') as string;
+      const dueDate = formData.get('dueDate') as string;
+      const tagsString = (formData.get('tagsString') as string).trim();
+
+      if (!title) return;
+
+      // Compile subtasks schema
+      const subtasks = pendingSubtasks.map((subTitle, idx) => ({
+        id: `temp-${Date.now()}-${idx}`,
+        title: subTitle,
+        completed: false
+      }));
+
+      // If tags string defined, split by commas and inject to notes or create subtasks out of tags
+      let titleWithTags = title;
+      if (tagsString) {
+        // We can save category or append extra details
+      }
+
+      // Add to store
+      TodoStore.addTodo({
+        title,
+        notes,
+        priority,
+        category,
+        dueDate,
+        subtasks
+      });
+
+      // Show toast
+      window.dispatchEvent(new CustomEvent('toast:show', {
+        detail: { message: `Task "${title}" created successfully!`, type: 'success' }
+      }));
+
+      closeModal();
+    });
+  }
+</script>

@@ -1,0 +1,935 @@
+---
+// TodoList.astro
+---
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start" id="todo-workspace">
+  
+  <!-- LEFT COLUMN: Filters Sidebar (4-span on desktop) -->
+  <aside class="lg:col-span-4 space-y-6 w-full lg:sticky lg:top-24">
+    
+    <!-- Quick Search bar -->
+    <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
+      <label for="todo-search" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-2">Search Backlog.</label>
+      <div class="relative">
+        <input 
+          type="text" 
+          id="todo-search" 
+          class="w-full bg-canvas-soft border border-hairline rounded-md pl-9 pr-8 py-1.5 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-9 transition-all"
+          placeholder="Filter by title, notes…"
+          autocomplete="off"
+        />
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-mute">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <button 
+          id="todo-search-clear" 
+          class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-mute hover:text-ink hidden"
+          aria-label="Clear search query"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Status Filters (counts in tabular numbers) -->
+    <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
+      <span class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-3">Filter by status.</span>
+      <nav class="space-y-1" aria-label="Todo Status Filters">
+        <button 
+          data-filter-status="all" 
+          class="filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium bg-canvas-soft-2 text-ink transition-all focus:outline-none"
+        >
+          <span>All Tasks</span>
+          <span id="count-all" class="font-mono text-[10px] font-medium text-mute tabular-nums">0</span>
+        </button>
+        <button 
+          data-filter-status="active" 
+          class="filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-body hover:bg-canvas-soft hover:text-ink transition-all focus:outline-none"
+        >
+          <span>Active</span>
+          <span id="count-active" class="font-mono text-[10px] font-medium text-mute tabular-nums">0</span>
+        </button>
+        <button 
+          data-filter-status="completed" 
+          class="filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-body hover:bg-canvas-soft hover:text-ink transition-all focus:outline-none"
+        >
+          <span>Completed</span>
+          <span id="count-completed" class="font-mono text-[10px] font-medium text-mute tabular-nums">0</span>
+        </button>
+        <button 
+          data-filter-status="overdue" 
+          class="filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-body hover:bg-canvas-soft hover:text-ink transition-all focus:outline-none"
+        >
+          <span class="text-error font-medium">Overdue</span>
+          <span id="count-overdue" class="font-mono text-[10px] font-semibold text-error tabular-nums">0</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Priority Filters -->
+    <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
+      <span class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-3">Filter by priority.</span>
+      <div class="flex flex-wrap gap-2" role="group" aria-label="Priority filters">
+        <button data-filter-priority="all" class="filter-priority-btn px-2.5 py-1 border border-brand-link text-ink rounded-full text-xs font-medium transition-all cursor-pointer focus:outline-none">
+          All
+        </button>
+        <button data-filter-priority="high" class="filter-priority-btn px-2.5 py-1 border border-hairline text-body rounded-full text-xs font-medium hover:bg-canvas-soft transition-all cursor-pointer flex items-center gap-1.5 focus:outline-none">
+          <span class="h-2 w-2 rounded-full bg-error"></span> High
+        </button>
+        <button data-filter-priority="medium" class="filter-priority-btn px-2.5 py-1 border border-hairline text-body rounded-full text-xs font-medium hover:bg-canvas-soft transition-all cursor-pointer flex items-center gap-1.5 focus:outline-none">
+          <span class="h-2 w-2 rounded-full bg-warning"></span> Med
+        </button>
+        <button data-filter-priority="low" class="filter-priority-btn px-2.5 py-1 border border-hairline text-body rounded-full text-xs font-medium hover:bg-canvas-soft transition-all cursor-pointer flex items-center gap-1.5 focus:outline-none">
+          <span class="h-2 w-2 rounded-full bg-gray-400 dark:bg-gray-600"></span> Low
+        </button>
+      </div>
+    </div>
+
+    <!-- Dynamic Tags Filter list -->
+    <div class="bg-canvas border border-hairline rounded-lg p-4 shadow-level-2">
+      <span class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-3">Filter by category.</span>
+      <div class="flex flex-wrap gap-1.5" id="dynamic-tags-list">
+        <!-- Tags will be injected here by Javascript -->
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT COLUMN: Tasks List workspace (8-span on desktop) -->
+  <main class="lg:col-span-8 space-y-4 w-full">
+    
+    <!-- Controls Toolbar -->
+    <div class="bg-canvas border border-hairline rounded-lg px-4 py-3 shadow-level-2 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="font-sans text-sm font-semibold text-ink">Task backlog.</span>
+        <span class="font-mono text-[10px] px-1.5 py-0.5 rounded border border-hairline-strong/30 text-mute tabular-nums" id="list-total-count">0 items</span>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Sort Control -->
+        <div class="flex items-center gap-2">
+          <label for="todo-sort" class="font-mono text-[10px] uppercase text-mute whitespace-nowrap">Sort by</label>
+          <select 
+            id="todo-sort" 
+            class="bg-canvas border border-hairline rounded px-2 py-1 text-xs text-ink font-sans focus:outline-none focus:ring-1 focus:ring-brand-link cursor-pointer h-7"
+          >
+            <option value="created-desc">Newest First</option>
+            <option value="created-asc">Oldest First</option>
+            <option value="due-date">Due Date</option>
+            <option value="priority-desc">Priority (High-Low)</option>
+            <option value="focus-time">Focus Time</option>
+          </select>
+        </div>
+
+        <!-- Grouping control -->
+        <button 
+          id="btn-group-toggle"
+          class="flex items-center gap-1.5 h-7 px-2.5 border border-hairline hover:bg-canvas-soft rounded text-xs text-body hover:text-ink font-sans transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-link cursor-pointer"
+          title="Group tasks by status"
+        >
+          <span>Group: Status</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Backlog Container -->
+    <div class="space-y-4" id="todos-list-viewport">
+      <!-- Generated lists will be injected here -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="todos-empty-state" class="bg-canvas-soft border border-hairline rounded-lg p-12 text-center hidden">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-canvas border border-hairline text-mute">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </div>
+      <h3 class="mt-4 font-sans text-sm font-semibold text-ink">No tasks match filter.</h3>
+      <p class="mt-1 text-xs text-mute font-sans">Try modifying your searches or filter criteria, or add a new task.</p>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============================================== -->
+<!-- HTML NATIVE TEMPLATE FOR A ROW (CLIENT HYDRATION) -->
+<!-- ============================================== -->
+<template id="todo-row-template">
+  <div class="todo-row bg-canvas border border-hairline rounded-lg shadow-level-2 transition-all duration-200" data-todo-id="">
+    
+    <!-- Accent Left Border (Colored via Priority dynamically) -->
+    <div class="flex items-start md:items-center justify-between gap-4 p-4 cursor-pointer select-none rounded-lg hover:bg-canvas-soft/40 transition-colors" data-action="toggle-expand">
+      
+      <div class="flex items-start md:items-center gap-3 min-w-0 flex-1">
+        <!-- Checked checkbox button -->
+        <button 
+          data-action="toggle-complete" 
+          class="mt-0.5 md:mt-0 flex h-[18px] w-[18px] items-center justify-center rounded border border-hairline-strong/60 bg-canvas hover:border-brand-link text-canvas focus:outline-none focus:ring-2 focus:ring-brand-link/30"
+          aria-label="Toggle task complete status"
+        >
+          <svg class="h-3 w-3 hidden text-white fill-current bg-primary rounded-[2px]" viewBox="0 0 20 20" id="checkmark-icon">
+            <path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/>
+          </svg>
+        </button>
+
+        <!-- Title -->
+        <h3 class="todo-title font-sans text-sm font-medium text-ink truncate flex-1 focus-visible:outline-none">
+          Task Title
+        </h3>
+      </div>
+
+      <!-- Right Metadata cluster -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        
+        <!-- Focus Duration tag -->
+        <span class="todo-focus-tag hidden items-center gap-1 font-mono text-[10px] text-brand-violet font-semibold bg-brand-violet/5 px-2 py-0.5 rounded-full border border-brand-violet/15">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="focus-time-label">15m</span>
+        </span>
+
+        <!-- Due Date tag -->
+        <span class="todo-due-tag hidden items-center gap-1 font-mono text-[10px] text-mute bg-canvas-soft border border-hairline px-2 py-0.5 rounded-full">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="due-date-label">Jun 12</span>
+        </span>
+
+        <!-- Active Lock Indicator -->
+        <span class="todo-lock-indicator hidden h-5 w-5 items-center justify-center rounded-full bg-brand-pink/10 border border-brand-pink/20 text-brand-pink animate-pulse" title="Task currently locked in focus timer">
+          <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1" fill="none"/>
+            <circle cx="12" cy="12" r="4" fill="currentColor"/>
+          </svg>
+        </span>
+
+        <!-- Category tag -->
+        <span class="todo-category-badge badge-secondary truncate max-w-[80px]">Work</span>
+
+        <!-- Priority Dot color -->
+        <span class="todo-priority-dot h-2 w-2 rounded-full bg-gray-400"></span>
+
+        <!-- Expand Arrow Chevron -->
+        <svg class="chevron-icon h-4 w-4 text-mute transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- ======================== -->
+    <!-- EXPANDABLE DRAWER PANEL -->
+    <!-- ======================== -->
+    <div class="todo-drawer border-t border-hairline bg-canvas-soft-2/50 rounded-b-lg hidden overflow-hidden transition-all duration-300">
+      <div class="p-4 space-y-4">
+        
+        <!-- Task description / notes -->
+        <div class="todo-notes-panel hidden">
+          <h4 class="font-mono text-[9px] uppercase tracking-wider text-mute mb-1">Notes / Description.</h4>
+          <!-- Editable text field or rendered paragraph -->
+          <div class="todo-notes-content font-sans text-xs text-body leading-relaxed whitespace-pre-wrap select-text">Notes details...</div>
+          <!-- Notes Edit Block -->
+          <div class="todo-notes-edit-block hidden mt-2 flex flex-col gap-2">
+            <textarea class="todo-notes-textarea w-full bg-canvas border border-hairline rounded p-2 text-xs font-sans placeholder-mute focus:outline-none focus:ring-1 focus:ring-brand-link" rows="2"></textarea>
+            <div class="flex gap-2 justify-end">
+              <button data-action="notes-cancel" class="px-2.5 py-1 border border-hairline hover:bg-canvas-soft rounded text-[10px] font-medium text-body cursor-pointer">Cancel</button>
+              <button data-action="notes-save" class="px-2.5 py-1 bg-primary text-on-primary rounded text-[10px] font-medium hover:scale-[1.02] cursor-pointer">Save</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Checklist Subtasks Section -->
+        <div class="todo-subtasks-panel">
+          <h4 class="font-mono text-[9px] uppercase tracking-wider text-mute mb-1.5">Subtask checklist.</h4>
+          <div class="subtask-rows space-y-1.5 max-w-md select-none">
+            <!-- Dynamic checklists items injected here -->
+          </div>
+
+          <!-- Add subtask inline input inside drawer -->
+          <div class="mt-3 flex gap-2 max-w-sm">
+            <input 
+              type="text" 
+              placeholder="Add checklist item…" 
+              class="inline-subtask-input flex-1 bg-canvas border border-hairline rounded px-2.5 py-1 text-[11px] font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-1 focus:ring-brand-link/25 h-7"
+            />
+            <button 
+              data-action="add-subtask" 
+              class="px-3 rounded bg-primary text-on-primary font-sans text-[11px] font-medium hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-brand-link"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- Drawer actions control toolbar -->
+        <div class="border-t border-hairline/80 pt-3 flex flex-wrap items-center justify-between gap-4">
+          <!-- Left: Lock Focus timer trigger -->
+          <div>
+            <button 
+              data-action="lock-focus" 
+              class="flex items-center gap-1.5 h-8 px-3 rounded-full border border-hairline hover:bg-canvas-soft text-xs text-body hover:text-ink transition-all font-sans font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link cursor-pointer"
+            >
+              <svg class="h-3.5 w-3.5 text-brand-pink fill-current" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <circle cx="12" cy="12" r="4" fill="currentColor"/>
+              </svg>
+              <span class="btn-lock-label">Lock onto Focus</span>
+            </button>
+          </div>
+
+          <!-- Right: Edit notes and Delete -->
+          <div class="flex items-center gap-2">
+            <button 
+              data-action="edit-notes"
+              class="flex items-center justify-center h-8 px-3 rounded-full border border-hairline bg-canvas hover:bg-canvas-soft text-xs text-body hover:text-ink transition-all font-sans font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link cursor-pointer"
+            >
+              <svg class="h-3.5 w-3.5 text-mute" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span>Edit Notes</span>
+            </button>
+
+            <button 
+              data-action="delete-task"
+              class="flex items-center justify-center h-8 w-8 rounded-full border border-error-soft bg-error-soft text-error-deep hover:bg-error hover:text-on-primary transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-error cursor-pointer"
+              aria-label="Delete task item"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  // State caches for filters and expansion
+  let activeStatusFilter = 'all'; // 'all' | 'active' | 'completed' | 'overdue'
+  let activePriorityFilter = 'all'; // 'all' | 'high' | 'medium' | 'low'
+  let selectedTagFilter = null; // null | tag name string
+  let searchQuery = '';
+  let activeSortOption = 'created-desc'; // 'created-desc' | 'created-asc' | 'due-date' | 'priority-desc' | 'focus-time'
+  let isGroupedByStatus = false;
+  let expandedTodoIds = new Set(); // Stores IDs of expanded cards
+
+  // DOM elements selectors
+  const viewport = document.getElementById('todos-list-viewport');
+  const emptyState = document.getElementById('todos-empty-state');
+  const listTotalCountLabel = document.getElementById('list-total-count');
+  
+  const searchInput = document.getElementById('todo-search') as HTMLInputElement;
+  const searchClearBtn = document.getElementById('todo-search-clear');
+  const statusFilterBtns = document.querySelectorAll('.filter-status-btn');
+  const priorityFilterBtns = document.querySelectorAll('.filter-priority-btn');
+  const dynamicTagsContainer = document.getElementById('dynamic-tags-list');
+  const sortSelect = document.getElementById('todo-sort') as HTMLSelectElement;
+  const groupToggleBtn = document.getElementById('btn-group-toggle');
+  
+  const template = document.getElementById('todo-row-template') as HTMLTemplateElement;
+
+  // Render sidebar filter counts
+  function updateSidebarStats() {
+    const todos = TodoStore.getTodos();
+    const stats = TodoStore.getStats();
+
+    // Counts update
+    const cAll = document.getElementById('count-all');
+    const cActive = document.getElementById('count-active');
+    const cCompleted = document.getElementById('count-completed');
+    const cOverdue = document.getElementById('count-overdue');
+
+    if (cAll) cAll.textContent = todos.length;
+    if (cActive) cActive.textContent = stats.pending;
+    if (cCompleted) cCompleted.textContent = stats.completed;
+    if (cOverdue) cOverdue.textContent = stats.overdue;
+
+    // Compile dynamic tags/categories from database
+    const categoriesMap = new Map();
+    todos.forEach(todo => {
+      const cat = todo.category || 'Work';
+      categoriesMap.set(cat, (categoriesMap.get(cat) || 0) + 1);
+    });
+
+    if (dynamicTagsContainer) {
+      if (categoriesMap.size === 0) {
+        dynamicTagsContainer.innerHTML = '<span class="text-xs text-mute font-medium py-1">No categories.</span>';
+        return;
+      }
+
+      const tagsHtml = Array.from(categoriesMap.entries()).map(([tag, count]) => {
+        const isSelected = selectedTagFilter === tag;
+        const activeClass = isSelected ? 'bg-primary text-on-primary ring-1 ring-primary' : 'bg-canvas-soft text-body hover:text-ink border border-hairline';
+        return `
+          <button 
+            data-tag="${tag}"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150 cursor-pointer focus:outline-none ${activeClass}"
+          >
+            <span>#${tag}</span>
+            <span class="font-mono text-[9px] opacity-60 tabular-nums">${count}</span>
+          </button>
+        `;
+      }).join('');
+
+      dynamicTagsContainer.innerHTML = tagsHtml;
+
+      // Click listener attachments
+      const tagBtns = dynamicTagsContainer.querySelectorAll('button[data-tag]');
+      tagBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tag = btn.getAttribute('data-tag');
+          selectedTagFilter = selectedTagFilter === tag ? null : tag;
+          renderList();
+        });
+      });
+    }
+  }
+
+  // Sorting tasks comparator
+  function getSortedTodos(todosList) {
+    return [...todosList].sort((a, b) => {
+      if (activeSortOption === 'created-desc') {
+        return b.createdAt - a.createdAt;
+      }
+      if (activeSortOption === 'created-asc') {
+        return a.createdAt - b.createdAt;
+      }
+      if (activeSortOption === 'due-date') {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return a.dueDate.localeCompare(b.dueDate);
+      }
+      if (activeSortOption === 'priority-desc') {
+        const val = { high: 3, medium: 2, low: 1 };
+        return val[b.priority] - val[a.priority];
+      }
+      if (activeSortOption === 'focus-time') {
+        return (b.focusSeconds || 0) - (a.focusSeconds || 0);
+      }
+      return 0;
+    });
+  }
+
+  // Format focus duration e.g. "50m" or "2.4h"
+  function formatFocusDuration(secs) {
+    if (!secs) return '0m';
+    if (secs < 3600) {
+      return `${Math.round(secs / 60)}m`;
+    }
+    return `${(secs / 3600).toFixed(1)}h`;
+  }
+
+  // Render the checklist row item inside drawer template
+  function createSubtaskRowElement(todoId, subtask) {
+    const row = document.createElement('div');
+    row.className = "flex items-center justify-between gap-3 px-2.5 py-1.5 rounded hover:bg-canvas-soft bg-canvas border border-hairline/60";
+    row.setAttribute('data-subtask-id', subtask.id);
+
+    const checkedClass = subtask.completed ? 'line-through text-mute' : 'text-ink';
+    const checkedAttr = subtask.completed ? 'class="h-2.5 w-2.5 text-white fill-current bg-primary rounded-[1px]"' : 'class="h-2.5 w-2.5 hidden text-white fill-current bg-primary rounded-[1px]"';
+
+    row.innerHTML = `
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <button 
+          data-action="subtask-toggle" 
+          class="flex h-4 w-4 items-center justify-center rounded border border-hairline-strong/60 bg-canvas text-canvas focus:outline-none focus:ring-1 focus:ring-brand-link/50"
+          aria-label="Toggle subtask completion"
+        >
+          <svg ${checkedAttr} viewBox="0 0 20 20" id="checkmark-icon-sub">
+            <path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/>
+          </svg>
+        </button>
+        <span class="font-sans text-xs ${checkedClass} truncate">${subtask.title}</span>
+      </div>
+      <button 
+        data-action="subtask-delete" 
+        class="text-mute hover:text-error transition-all focus:outline-none"
+        aria-label="Delete subtask"
+      >
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    `;
+
+    // Click handlers
+    const toggleBtn = row.querySelector('[data-action="subtask-toggle"]');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        TodoStore.toggleSubtask(todoId, subtask.id);
+      });
+    }
+
+    const deleteBtn = row.querySelector('[data-action="subtask-delete"]');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        TodoStore.deleteSubtask(todoId, subtask.id);
+      });
+    }
+
+    return row;
+  }
+
+  // Hydrate cloned template element properties
+  function hydrateTodoRow(todo) {
+    const clone = template.content.cloneNode(true) as DocumentFragment;
+    const rowContainer = clone.querySelector('.todo-row') as HTMLDivElement;
+    rowContainer.setAttribute('data-todo-id', todo.id);
+
+    // Apply priority accent left border
+    const priorityBorders = {
+      high: 'border-l-4 border-l-error',
+      medium: 'border-l-4 border-l-warning',
+      low: 'border-l-4 border-l-gray-400 dark:border-l-gray-600'
+    };
+    rowContainer.className += ` ${priorityBorders[todo.priority] || ''}`;
+
+    // Elements
+    const titleEl = clone.querySelector('.todo-title') as HTMLHeadingElement;
+    const checkmarkIcon = clone.querySelector('#checkmark-icon');
+    const checkboxBtn = clone.querySelector('[data-action="toggle-complete"]');
+    const chevronIcon = clone.querySelector('.chevron-icon');
+    const drawer = clone.querySelector('.todo-drawer') as HTMLDivElement;
+    const categoryBadge = clone.querySelector('.todo-category-badge');
+    const priorityDot = clone.querySelector('.todo-priority-dot') as HTMLSpanElement;
+
+    // Checkbox and Title values
+    if (titleEl) {
+      titleEl.textContent = todo.title;
+      if (todo.completed) {
+        titleEl.classList.add('line-through', 'text-mute');
+        titleEl.classList.remove('text-ink');
+      }
+    }
+
+    if (checkboxBtn && checkmarkIcon) {
+      if (todo.completed) {
+        checkmarkIcon.classList.remove('hidden');
+        checkboxBtn.classList.add('border-primary');
+      } else {
+        checkmarkIcon.classList.add('hidden');
+        checkboxBtn.classList.remove('border-primary');
+      }
+    }
+
+    // Toggle complete button click
+    if (checkboxBtn) {
+      checkboxBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Stop expansion trigger
+        TodoStore.toggleTodo(todo.id);
+      });
+    }
+
+    // Category tag
+    if (categoryBadge) {
+      categoryBadge.textContent = todo.category || 'Work';
+    }
+
+    // Priority Dot representation
+    if (priorityDot) {
+      const dotColors = {
+        high: 'bg-error',
+        medium: 'bg-warning',
+        low: 'bg-gray-400 dark:bg-gray-600'
+      };
+      priorityDot.className = `todo-priority-dot h-2 w-2 rounded-full ${dotColors[todo.priority] || 'bg-gray-400'}`;
+    }
+
+    // Focus Duration indicator
+    const focusTag = clone.querySelector('.todo-focus-tag') as HTMLSpanElement;
+    if (focusTag) {
+      if (todo.focusSeconds && todo.focusSeconds > 0) {
+        focusTag.classList.remove('hidden');
+        focusTag.classList.add('inline-flex');
+        const label = focusTag.querySelector('.focus-time-label');
+        if (label) label.textContent = formatFocusDuration(todo.focusSeconds);
+      }
+    }
+
+    // Due date indicator
+    const dueTag = clone.querySelector('.todo-due-tag') as HTMLSpanElement;
+    if (dueTag) {
+      if (todo.dueDate) {
+        dueTag.classList.remove('hidden');
+        dueTag.classList.add('inline-flex');
+        const label = dueTag.querySelector('.due-date-label');
+        if (label) {
+          // Format date readable
+          const parts = todo.dueDate.split('-');
+          const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+          label.textContent = `${m[dateObj.getMonth()]} ${dateObj.getDate()}`;
+        }
+        
+        // Overdue coloration
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (!todo.completed && todo.dueDate < todayStr) {
+          dueTag.classList.add('text-error', 'bg-error-soft/30', 'border-error-soft');
+          dueTag.classList.remove('text-mute', 'bg-canvas-soft');
+        }
+      }
+    }
+
+    // Active Focus timer lock state indicator
+    const lockIndicator = clone.querySelector('.todo-lock-indicator') as HTMLSpanElement;
+    const btnLockLabel = clone.querySelector('.btn-lock-label') as HTMLSpanElement;
+    const activeLockId = TodoStore.getActiveFocusTodoId();
+    const isLocked = activeLockId === todo.id;
+
+    if (lockIndicator && isLocked) {
+      lockIndicator.classList.remove('hidden');
+      lockIndicator.classList.add('inline-flex');
+    }
+    if (btnLockLabel) {
+      btnLockLabel.textContent = isLocked ? 'Task Locked' : 'Lock onto Focus';
+      const btn = btnLockLabel.parentElement;
+      if (btn) {
+        if (isLocked) {
+          btn.className = "flex items-center gap-1.5 h-8 px-3 rounded-full bg-brand-pink border border-brand-pink text-xs font-semibold text-white transition-all font-sans cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink";
+        } else {
+          btn.className = "flex items-center gap-1.5 h-8 px-3 rounded-full border border-hairline hover:bg-canvas-soft text-xs text-body hover:text-ink transition-all font-sans font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link cursor-pointer";
+        }
+      }
+    }
+
+    // Toggle expansion logic
+    const isExpanded = expandedTodoIds.has(todo.id);
+    if (isExpanded && drawer && chevronIcon) {
+      drawer.classList.remove('hidden');
+      chevronIcon.classList.add('rotate-180');
+    }
+
+    const triggerEl = clone.querySelector('[data-action="toggle-expand"]');
+    if (triggerEl) {
+      triggerEl.addEventListener('click', (e) => {
+        // Stop if clicking inside button or checkbox
+        if ((e.target as HTMLElement).closest('button')) return;
+
+        if (expandedTodoIds.has(todo.id)) {
+          expandedTodoIds.delete(todo.id);
+          drawer.classList.add('hidden');
+          chevronIcon.classList.remove('rotate-180');
+        } else {
+          expandedTodoIds.add(todo.id);
+          drawer.classList.remove('hidden');
+          chevronIcon.classList.add('rotate-180');
+        }
+      });
+    }
+
+    // ────────────────────────────
+    // DRAWER EXPANSION HYDRATION
+    // ────────────────────────────
+    
+    // Notes description panel
+    const notesPanel = clone.querySelector('.todo-notes-panel') as HTMLDivElement;
+    const notesContent = clone.querySelector('.todo-notes-content') as HTMLParagraphElement;
+    if (notesPanel && notesContent) {
+      if (todo.notes) {
+        notesPanel.classList.remove('hidden');
+        notesContent.textContent = todo.notes;
+      } else {
+        notesPanel.classList.remove('hidden');
+        notesContent.innerHTML = `<em class="text-mute">No notes or description defined. Click Edit Notes below to add one.</em>`;
+      }
+    }
+
+    // Edit notes block toggling
+    const editNotesBtn = clone.querySelector('[data-action="edit-notes"]');
+    const notesEditBlock = clone.querySelector('.todo-notes-edit-block') as HTMLDivElement;
+    const notesTextarea = clone.querySelector('.todo-notes-textarea') as HTMLTextAreaElement;
+    const notesCancelBtn = clone.querySelector('[data-action="notes-cancel"]');
+    const notesSaveBtn = clone.querySelector('[data-action="notes-save"]');
+
+    if (editNotesBtn && notesEditBlock && notesTextarea) {
+      editNotesBtn.addEventListener('click', () => {
+        notesTextarea.value = todo.notes || '';
+        notesContent.classList.add('hidden');
+        notesEditBlock.classList.remove('hidden');
+        notesTextarea.focus();
+      });
+    }
+
+    if (notesCancelBtn && notesEditBlock && notesContent) {
+      notesCancelBtn.addEventListener('click', () => {
+        notesEditBlock.classList.add('hidden');
+        notesContent.classList.remove('hidden');
+      });
+    }
+
+    if (notesSaveBtn && notesEditBlock && notesContent) {
+      notesSaveBtn.addEventListener('click', () => {
+        const newNotes = notesTextarea.value.trim();
+        TodoStore.updateTodo(todo.id, { notes: newNotes });
+        window.dispatchEvent(new CustomEvent('toast:show', {
+          detail: { message: `Updated notes description.`, type: 'success' }
+        }));
+      });
+    }
+
+    // Subtasks Checklist container rendering
+    const subtasksPanel = clone.querySelector('.todo-subtasks-panel') as HTMLDivElement;
+    const subtaskRowsContainer = clone.querySelector('.subtask-rows') as HTMLDivElement;
+    const subtaskInlineInput = clone.querySelector('.inline-subtask-input') as HTMLInputElement;
+    const subtaskInlineAddBtn = clone.querySelector('[data-action="add-subtask"]');
+
+    if (subtasksPanel && subtaskRowsContainer) {
+      if (todo.subtasks && todo.subtasks.length > 0) {
+        subtaskRowsContainer.innerHTML = '';
+        todo.subtasks.forEach(sub => {
+          subtaskRowsContainer.appendChild(createSubtaskRowElement(todo.id, sub));
+        });
+      } else {
+        subtaskRowsContainer.innerHTML = `<span class="text-xs text-mute italic py-0.5">No checklist subtasks.</span>`;
+      }
+    }
+
+    // Inline add subtask button click
+    function addInlineSubtask() {
+      if (!subtaskInlineInput) return;
+      const title = subtaskInlineInput.value.trim();
+      if (title) {
+        TodoStore.addSubtask(todo.id, title);
+        subtaskInlineInput.value = '';
+      }
+    }
+
+    if (subtaskInlineAddBtn) {
+      subtaskInlineAddBtn.addEventListener('click', addInlineSubtask);
+    }
+    if (subtaskInlineInput) {
+      subtaskInlineInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addInlineSubtask();
+        }
+      });
+    }
+
+    // Drawer Footer Actions
+    // Lock Focus timer click
+    const lockBtn = clone.querySelector('[data-action="lock-focus"]');
+    if (lockBtn) {
+      lockBtn.addEventListener('click', () => {
+        if (isLocked) {
+          TodoStore.setActiveFocusTodoId(null);
+          window.dispatchEvent(new CustomEvent('toast:show', {
+            detail: { message: `Unlocked focus timer.`, type: 'info' }
+          }));
+        } else {
+          TodoStore.setActiveFocusTodoId(todo.id);
+          window.dispatchEvent(new CustomEvent('toast:show', {
+            detail: { message: `Locked onto task: "${todo.title}"`, type: 'success' }
+          }));
+        }
+      });
+    }
+
+    // Delete Task click
+    const deleteBtn = clone.querySelector('[data-action="delete-task"]');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete this task?`)) {
+          TodoStore.deleteTodo(todo.id);
+          window.dispatchEvent(new CustomEvent('toast:show', {
+            detail: { message: `Task deleted.`, type: 'info' }
+          }));
+        }
+      });
+    }
+
+    return clone;
+  }
+
+  // Master Render Engine Loop
+  function renderList() {
+    updateSidebarStats();
+    
+    if (!viewport) return;
+    const todos = TodoStore.getTodos();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 1. FILTERING
+    let filtered = todos.filter(todo => {
+      // Fuzzy text search
+      if (searchQuery) {
+        const matchesTitle = todo.title.toLowerCase().includes(searchQuery);
+        const matchesNotes = todo.notes && todo.notes.toLowerCase().includes(searchQuery);
+        if (!matchesTitle && !matchesNotes) return false;
+      }
+
+      // Status filters
+      if (activeStatusFilter === 'active' && todo.completed) return false;
+      if (activeStatusFilter === 'completed' && !todo.completed) return false;
+      if (activeStatusFilter === 'overdue') {
+        if (todo.completed || !todo.dueDate || todo.dueDate >= todayStr) return false;
+      }
+
+      // Priority filter
+      if (activePriorityFilter !== 'all' && todo.priority !== activePriorityFilter) return false;
+
+      // Category tags filter
+      if (selectedTagFilter && todo.category !== selectedTagFilter) return false;
+
+      return true;
+    });
+
+    if (listTotalCountLabel) {
+      listTotalCountLabel.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'}`;
+    }
+
+    // Toggle Empty state visual indicators
+    if (filtered.length === 0) {
+      viewport.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
+      return;
+    } else {
+      if (emptyState) emptyState.classList.add('hidden');
+    }
+
+    // 2. SORTING & GROUPING
+    if (isGroupedByStatus) {
+      // Grouping mode: Pending group then Completed group
+      const pending = getSortedTodos(filtered.filter(t => !t.completed));
+      const completed = getSortedTodos(filtered.filter(t => t.completed));
+
+      viewport.innerHTML = '';
+
+      if (pending.length > 0) {
+        const header = document.createElement('div');
+        header.className = "flex items-center gap-2 border-b border-hairline pb-2 mt-2";
+        header.innerHTML = `<span class="font-mono text-[9px] uppercase tracking-wider text-mute">Active Tasks (${pending.length})</span>`;
+        viewport.appendChild(header);
+
+        const group = document.createElement('div');
+        group.className = "space-y-3";
+        pending.forEach(todo => {
+          group.appendChild(hydrateTodoRow(todo));
+        });
+        viewport.appendChild(group);
+      }
+
+      if (completed.length > 0) {
+        const header = document.createElement('div');
+        header.className = "flex items-center gap-2 border-b border-hairline pb-2 mt-6";
+        header.innerHTML = `<span class="font-mono text-[9px] uppercase tracking-wider text-mute">Completed Tasks (${completed.length})</span>`;
+        viewport.appendChild(header);
+
+        const group = document.createElement('div');
+        group.className = "space-y-3 opacity-85";
+        completed.forEach(todo => {
+          group.appendChild(hydrateTodoRow(todo));
+        });
+        viewport.appendChild(group);
+      }
+    } else {
+      // Normal flat sorted list
+      const sorted = getSortedTodos(filtered);
+      
+      viewport.innerHTML = '';
+      const listWrapper = document.createElement('div');
+      listWrapper.className = "space-y-3";
+      
+      sorted.forEach(todo => {
+        listWrapper.appendChild(hydrateTodoRow(todo));
+      });
+      viewport.appendChild(listWrapper);
+    }
+  }
+
+  // Search Input triggers
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      searchQuery = searchInput.value.toLowerCase().trim();
+      if (searchQuery) {
+        if (searchClearBtn) searchClearBtn.classList.remove('hidden');
+      } else {
+        if (searchClearBtn) searchClearBtn.classList.add('hidden');
+      }
+      renderList();
+    });
+  }
+
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      searchQuery = '';
+      searchClearBtn.classList.add('hidden');
+      renderList();
+    });
+  }
+
+  // Sidebar status filter clicking
+  statusFilterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      statusFilterBtns.forEach(b => b.className = "filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium text-body hover:bg-canvas-soft hover:text-ink transition-all focus:outline-none");
+      
+      const status = btn.getAttribute('data-filter-status');
+      activeStatusFilter = status;
+      
+      // Update visual indicator
+      btn.className = "filter-status-btn w-full flex items-center justify-between px-3 py-2 rounded-md text-xs font-medium bg-canvas-soft-2 text-ink transition-all focus:outline-none";
+      
+      renderList();
+    });
+  });
+
+  // Priority filters clicking
+  priorityFilterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      priorityFilterBtns.forEach(b => b.className = "filter-priority-btn px-2.5 py-1 border border-hairline text-body rounded-full text-xs font-medium hover:bg-canvas-soft transition-all cursor-pointer flex items-center gap-1.5 focus:outline-none");
+      
+      const pri = btn.getAttribute('data-filter-priority');
+      activePriorityFilter = pri;
+
+      // Update styling
+      btn.className = "filter-priority-btn px-2.5 py-1 border border-brand-link text-ink rounded-full text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 focus:outline-none";
+
+      renderList();
+    });
+  });
+
+  // Sorting selects
+  if (sortSelect) {
+    sortSelect.addEventListener('change', () => {
+      activeSortOption = sortSelect.value;
+      renderList();
+    });
+  }
+
+  // Group toggling buttons
+  if (groupToggleBtn) {
+    groupToggleBtn.addEventListener('click', () => {
+      isGroupedByStatus = !isGroupedByStatus;
+      groupToggleBtn.innerHTML = `<span>Group: ${isGroupedByStatus ? 'Status' : 'Flat'}</span>`;
+      if (isGroupedByStatus) {
+        groupToggleBtn.classList.add('bg-primary', 'text-on-primary', 'border-primary');
+        groupToggleBtn.classList.remove('text-body');
+      } else {
+        groupToggleBtn.classList.remove('bg-primary', 'text-on-primary', 'border-primary');
+        groupToggleBtn.classList.add('text-body');
+      }
+      renderList();
+    });
+  }
+
+  // Listen for database changes to sync lists
+  window.addEventListener('todo:change', renderList);
+  window.addEventListener('focus-todo:change', renderList);
+
+  // Initial render on page boot
+  renderList();
+</script>

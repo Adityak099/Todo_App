@@ -1,0 +1,129 @@
+---
+// StatsGrid.astro
+---
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full" id="stats-grid">
+  <!-- Completion Rate Card -->
+  <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 hover:shadow-level-4 transition-all duration-200">
+    <div class="flex items-center justify-between">
+      <span class="font-mono text-xs font-medium uppercase tracking-wider text-mute">Completion Rate.</span>
+      <span class="text-brand-link">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-1.5">
+      <span id="stat-rate" class="font-sans text-3xl font-semibold tracking-tight text-ink tabular-nums">0%</span>
+      <span class="text-xs text-mute font-medium">of total</span>
+    </div>
+    <div class="mt-4 w-full h-1.5 bg-canvas-soft-2 rounded-full overflow-hidden">
+      <div id="stat-rate-bar" class="h-full bg-brand-link transition-all duration-500 ease-out" style="width: 0%;"></div>
+    </div>
+  </div>
+
+  <!-- Total Focus Time Card -->
+  <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 hover:shadow-level-4 transition-all duration-200">
+    <div class="flex items-center justify-between">
+      <span class="font-mono text-xs font-medium uppercase tracking-wider text-mute">Total Focus.</span>
+      <span class="text-brand-violet">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-1.5">
+      <span id="stat-focus" class="font-sans text-3xl font-semibold tracking-tight text-ink tabular-nums">0.0</span>
+      <span class="text-xs text-mute font-medium">hours</span>
+    </div>
+    <p class="mt-4 text-xs text-mute font-medium truncate">Accumulated focus sessions.</p>
+  </div>
+
+  <!-- Pending Tasks Card -->
+  <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 hover:shadow-level-4 transition-all duration-200">
+    <div class="flex items-center justify-between">
+      <span class="font-mono text-xs font-medium uppercase tracking-wider text-mute">Pending Tasks.</span>
+      <span class="text-warning-deep">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-1.5">
+      <span id="stat-pending" class="font-sans text-3xl font-semibold tracking-tight text-ink tabular-nums">0</span>
+      <span class="text-xs text-mute font-medium">remaining</span>
+    </div>
+    <div class="mt-4 flex items-center gap-1.5 text-xs text-mute font-medium truncate">
+      <span id="stat-high-priority" class="inline-flex items-center rounded-full bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning-deep">0 High Priority</span>
+    </div>
+  </div>
+
+  <!-- Overdue Actions Card -->
+  <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 hover:shadow-level-4 transition-all duration-200">
+    <div class="flex items-center justify-between">
+      <span class="font-mono text-xs font-medium uppercase tracking-wider text-mute">Overdue Tasks.</span>
+      <span class="text-error">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+      </span>
+    </div>
+    <div class="mt-3 flex items-baseline gap-1.5">
+      <span id="stat-overdue" class="font-sans text-3xl font-semibold tracking-tight text-ink tabular-nums">0</span>
+      <span class="text-xs text-mute font-medium">passed deadline</span>
+    </div>
+    <div class="mt-4 text-xs font-medium" id="stat-overdue-status">
+      <!-- Dynamic color text based on whether there are overdue items -->
+      <span class="text-success font-medium">All caught up!</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  // Function to refresh stats labels
+  function updateStats() {
+    const stats = TodoStore.getStats();
+
+    // DOM selectors
+    const statRate = document.getElementById('stat-rate');
+    const statRateBar = document.getElementById('stat-rate-bar');
+    const statFocus = document.getElementById('stat-focus');
+    const statPending = document.getElementById('stat-pending');
+    const statHighPriority = document.getElementById('stat-high-priority');
+    const statOverdue = document.getElementById('stat-overdue');
+    const statOverdueStatus = document.getElementById('stat-overdue-status');
+
+    if (statRate) statRate.textContent = `${stats.completionRate}%`;
+    if (statRateBar) statRateBar.style.width = `${stats.completionRate}%`;
+    if (statFocus) statFocus.textContent = stats.focusHours;
+    if (statPending) statPending.textContent = stats.pending;
+    
+    if (statHighPriority) {
+      statHighPriority.textContent = `${stats.highPriority} High Priority`;
+      if (stats.highPriority > 0) {
+        statHighPriority.classList.remove('hidden');
+      } else {
+        statHighPriority.classList.add('hidden');
+      }
+    }
+
+    if (statOverdue) statOverdue.textContent = stats.overdue;
+
+    if (statOverdueStatus) {
+      if (stats.overdue > 0) {
+        statOverdueStatus.innerHTML = `<span class="text-error font-medium">Requires attention.</span>`;
+      } else {
+        statOverdueStatus.innerHTML = `<span class="text-success font-medium">All caught up!</span>`;
+      }
+    }
+  }
+
+  // Bind to change events
+  window.addEventListener('todo:change', updateStats);
+  
+  // Initial load
+  updateStats();
+</script>

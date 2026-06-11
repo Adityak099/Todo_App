@@ -1,0 +1,385 @@
+---
+// AnalyticsView.astro
+---
+
+<div class="space-y-8 w-full select-none" id="analytics-view">
+  
+  <!-- High Level KPI Cards Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Daily Average focus -->
+    <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-2">
+      <span class="font-mono text-[9px] uppercase tracking-wider text-mute block">Weekly Focus Avg.</span>
+      <span id="ana-kpi-avg" class="font-sans text-2xl font-bold tracking-tight text-ink mt-2 block tabular-nums">0m</span>
+      <p class="text-[11px] text-mute mt-1">Average focused minutes/day.</p>
+    </div>
+
+    <!-- Total Focus Sessions -->
+    <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-2">
+      <span class="font-mono text-[9px] uppercase tracking-wider text-mute block">Total Focus Time.</span>
+      <span id="ana-kpi-total" class="font-sans text-2xl font-bold tracking-tight text-ink mt-2 block tabular-nums">0.0h</span>
+      <p class="text-[11px] text-mute mt-1">Total accumulated focus hours.</p>
+    </div>
+
+    <!-- Top focused category -->
+    <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-2">
+      <span class="font-mono text-[9px] uppercase tracking-wider text-mute block">Top Category.</span>
+      <span id="ana-kpi-top-category" class="font-sans text-2xl font-bold tracking-tight text-brand-violet mt-2 block truncate">Work</span>
+      <p class="text-[11px] text-mute mt-1">Highest focus concentration.</p>
+    </div>
+
+    <!-- Productive Day -->
+    <div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-2">
+      <span class="font-mono text-[9px] uppercase tracking-wider text-mute block">Completions.</span>
+      <span id="ana-kpi-completions" class="font-sans text-2xl font-bold tracking-tight text-brand-link mt-2 block tabular-nums">0</span>
+      <p class="text-[11px] text-mute mt-1">Total completed tasks.</p>
+    </div>
+  </div>
+
+  <!-- Charts Layout Grid (2 Columns on desktop) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+    
+    <!-- LEFT CHART: Weekly Focus Trends (SVG Bar Chart) -->
+    <div class="lg:col-span-7 bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 flex flex-col justify-between min-h-[300px]">
+      <div class="border-b border-hairline pb-2.5">
+        <h3 class="font-sans text-sm font-semibold text-ink">Weekly Focus Trends.</h3>
+        <p class="text-xs text-mute mt-0.5">Focused minutes per day for the last 7 days.</p>
+      </div>
+      
+      <!-- Dynamic SVG Bar Chart Wrapper -->
+      <div class="my-4 h-48 flex items-end justify-between w-full pt-6 relative" id="svg-bar-chart-container">
+        <!-- SVG injected dynamically here -->
+      </div>
+    </div>
+
+    <!-- RIGHT CHART: Category Focus Breakdown (SVG Donut Chart) -->
+    <div class="lg:col-span-5 bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 flex flex-col justify-between min-h-[300px]">
+      <div class="border-b border-hairline pb-2.5">
+        <h3 class="font-sans text-sm font-semibold text-ink">Focus Distribution.</h3>
+        <p class="text-xs text-mute mt-0.5">Focus allocation split across task categories.</p>
+      </div>
+
+      <!-- Donut Circle chart content wrapper -->
+      <div class="my-4 h-48 flex items-center justify-center relative" id="svg-donut-chart-container">
+        <!-- SVG injected dynamically here -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Completed Backlog History (Vercel data table chrome) -->
+  <div class="bg-canvas border border-hairline rounded-lg shadow-level-3 overflow-hidden">
+    <div class="border-b border-hairline px-5 py-4">
+      <h3 class="font-sans text-sm font-semibold text-ink">Completions History.</h3>
+      <p class="text-xs text-mute mt-0.5">Audit log of all archived tasks, durations, and dates.</p>
+    </div>
+
+    <!-- Responsive Table viewport -->
+    <div class="overflow-x-auto w-full">
+      <table class="w-full text-left border-collapse" id="completions-history-table">
+        <thead>
+          <tr class="bg-canvas-soft border-b border-hairline">
+            <th class="px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-mute">Task Title</th>
+            <th class="px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-mute text-center">Category</th>
+            <th class="px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-mute text-center">Priority</th>
+            <th class="px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-mute text-right">Focus Time</th>
+            <th class="px-5 py-3 font-mono text-[10px] font-semibold uppercase tracking-wider text-mute text-right">Completed Date</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-hairline text-xs font-sans text-body" id="completions-table-rows">
+          <!-- Rows injected dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Empty State -->
+    <div id="completions-table-empty" class="p-8 text-center text-xs text-mute italic hidden">
+      No completed tasks archived yet. Log some work to populate history.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  // Master update function for analytics data
+  function renderAnalytics() {
+    const todos = TodoStore.getTodos();
+    const stats = TodoStore.getStats();
+    const weeklyFocus = TodoStore.getWeeklyFocusStats();
+
+    // ──────────────────────────────
+    // 1. REFRESH HIGH-LEVEL KPIS
+    // ──────────────────────────────
+    const kpiAvg = document.getElementById('ana-kpi-avg');
+    const kpiTotal = document.getElementById('ana-kpi-total');
+    const kpiTopCategory = document.getElementById('ana-kpi-top-category');
+    const kpiCompletions = document.getElementById('ana-kpi-completions');
+
+    // Compute weekly averages
+    const totalWeeklyMins = weeklyFocus.reduce((acc, d) => acc + d.minutes, 0);
+    const weeklyAvg = Math.round(totalWeeklyMins / 7);
+    if (kpiAvg) kpiAvg.textContent = `${weeklyAvg}m`;
+    
+    if (kpiTotal) kpiTotal.textContent = `${stats.focusHours}h`;
+    if (kpiCompletions) kpiCompletions.textContent = stats.completed;
+
+    // Compute top focused category dynamically
+    const categoryFocusMap = new Map();
+    todos.forEach(t => {
+      const cat = t.category || 'Work';
+      categoryFocusMap.set(cat, (categoryFocusMap.get(cat) || 0) + (t.focusSeconds || 0));
+    });
+
+    let topCategory = 'None';
+    let maxFocus = -1;
+    categoryFocusMap.forEach((secs, cat) => {
+      if (secs > maxFocus && secs > 0) {
+        maxFocus = secs;
+        topCategory = cat;
+      }
+    });
+    if (kpiTopCategory) {
+      kpiTopCategory.textContent = topCategory;
+      if (topCategory !== 'None') {
+        kpiTopCategory.className = "font-sans text-2xl font-bold tracking-tight text-brand-violet mt-2 block truncate";
+      } else {
+        kpiTopCategory.className = "font-sans text-2xl font-bold tracking-tight text-mute mt-2 block truncate";
+      }
+    }
+
+    // ──────────────────────────────
+    // 2. RENDER WEEKLY TRENDS SVG
+    // ──────────────────────────────
+    const barChartContainer = document.getElementById('svg-bar-chart-container');
+    if (barChartContainer) {
+      const maxMinutes = Math.max(30, ...weeklyFocus.map(d => d.minutes));
+      
+      const barsHtml = weeklyFocus.map((d, index) => {
+        // Calculate height percentage (cap min height for visibility if minutes > 0)
+        const pct = d.minutes > 0 ? Math.max(8, (d.minutes / maxMinutes) * 100) : 0;
+        
+        // Highlight today
+        const isToday = index === 6;
+        const fillClass = isToday 
+          ? 'fill-brand-link dark:fill-brand-cyan' 
+          : 'fill-hairline-strong/30 dark:fill-hairline-strong/20 hover:fill-primary/60';
+
+        const labelClass = isToday ? 'text-ink font-semibold' : 'text-mute';
+
+        // Grid coordinates
+        const x = 12 + index * 14; // spacing factor
+        
+        return `
+          <g class="group/bar cursor-pointer">
+            <rect 
+              x="${x}%" 
+              y="${100 - pct}%" 
+              width="6%" 
+              height="${pct}%" 
+              class="${fillClass} transition-all duration-300"
+              rx="3"
+            />
+            <!-- Tooltip info overlay -->
+            <text 
+              x="${x + 3}%" 
+              y="${Math.max(10, 95 - pct)}%" 
+              text-anchor="middle" 
+              class="opacity-0 group-hover/bar:opacity-100 fill-ink font-mono text-[9px] font-semibold transition-opacity duration-200 tabular-nums"
+            >
+              ${d.minutes}m
+            </text>
+            <!-- Label -->
+            <text 
+              x="${x + 3}%" 
+              y="115%" 
+              text-anchor="middle" 
+              class="font-mono text-[10px] ${labelClass} fill-current"
+            >
+              ${d.dayName}
+            </text>
+          </g>
+        `;
+      }).join('');
+
+      barChartContainer.innerHTML = `
+        <svg class="w-full h-[90%] overflow-visible">
+          <!-- Background reference gridlines -->
+          <line x1="0" y1="25%" x2="100%" y2="25%" class="stroke-hairline" stroke-width="1" stroke-dasharray="3 3" />
+          <line x1="0" y1="50%" x2="100%" y2="50%" class="stroke-hairline" stroke-width="1" stroke-dasharray="3 3" />
+          <line x1="0" y1="75%" x2="100%" y2="75%" class="stroke-hairline" stroke-width="1" stroke-dasharray="3 3" />
+          <line x1="0" y1="100%" x2="100%" y2="100%" class="stroke-hairline" stroke-width="1" />
+          
+          <!-- Rendered bars -->
+          ${barsHtml}
+        </svg>
+      `;
+    }
+
+    // ──────────────────────────────
+    // 3. RENDER CATEGORY DONUT SVG
+    // ──────────────────────────────
+    const donutContainer = document.getElementById('svg-donut-chart-container');
+    if (donutContainer) {
+      const activeCategories = Array.from(categoryFocusMap.entries()).filter(([_, secs]) => secs > 0);
+      const totalFocusSecs = activeCategories.reduce((acc, [_, secs]) => acc + secs, 0);
+
+      if (totalFocusSecs === 0) {
+        donutContainer.innerHTML = `
+          <div class="text-xs text-mute italic text-center p-8">
+            No focus sessions logged. Start a timer to display focus splits.
+          </div>
+        `;
+      } else {
+        // Draw Donut segments
+        let cumulativePercent = 0;
+        const colors = [
+          '#0070f3', // Brand blue
+          '#7928ca', // Violet
+          '#ff0080', // Pink
+          '#50e3c2', // Mint cyan
+          '#f5a623', // Amber warning
+          '#ab570a'  // Coral
+        ];
+
+        // Draw donut segments
+        let currentAngle = 0;
+        const segmentPaths = activeCategories.map(([cat, secs], idx) => {
+          const pct = secs / totalFocusSecs;
+          const angle = pct * 360;
+          
+          // Radius and center coordinates
+          const r = 50;
+          const cx = 80;
+          const cy = 80;
+          
+          // Calculate start & end coordinates for SVG arc paths
+          const startAngleRad = (currentAngle - 90) * Math.PI / 180;
+          const endAngleRad = (currentAngle + angle - 90) * Math.PI / 180;
+          
+          const x1 = cx + r * Math.cos(startAngleRad);
+          const y1 = cy + r * Math.sin(startAngleRad);
+          const x2 = cx + r * Math.cos(endAngleRad);
+          const y2 = cy + r * Math.sin(endAngleRad);
+          
+          const largeArcFlag = angle > 180 ? 1 : 0;
+          
+          // SVG Arc command
+          const pathData = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}`;
+          
+          currentAngle += angle;
+          const color = colors[idx % colors.length];
+          
+          return {
+            pathData,
+            color,
+            category: cat,
+            percentage: Math.round(pct * 100)
+          };
+        });
+
+        // Legends representation
+        const legendHtml = segmentPaths.map(seg => `
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-full" style="background-color: ${seg.color}"></span>
+            <span class="text-xs text-ink font-medium select-none truncate max-w-[80px]">#${seg.category}</span>
+            <span class="font-mono text-[10px] text-mute select-none tabular-nums">${seg.percentage}%</span>
+          </div>
+        `).join('');
+
+        donutContainer.innerHTML = `
+          <div class="flex items-center justify-between w-full px-6 gap-6">
+            <svg class="h-40 w-40 overflow-visible" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="50" fill="none" class="stroke-canvas-soft-2" stroke-width="16" />
+              ${segmentPaths.map(seg => `
+                <path 
+                  d="${seg.pathData}" 
+                  fill="none" 
+                  stroke="${seg.color}" 
+                  stroke-width="16"
+                  class="transition-all duration-300 hover:stroke-[20px] cursor-pointer"
+                />
+              `).join('')}
+              <!-- Inner overlay total label -->
+              <text x="80" y="77" text-anchor="middle" class="fill-mute font-mono text-[9px] uppercase tracking-wider font-semibold">Focus</text>
+              <text x="80" y="94" text-anchor="middle" class="fill-ink font-sans text-sm font-bold tracking-tight">${stats.focusHours}h</text>
+            </svg>
+            <div class="flex flex-col gap-2 flex-1 justify-center max-w-[120px]">
+              ${legendHtml}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // ──────────────────────────────
+    // 4. POPULATE COMPLETIONS TABLE
+    // ──────────────────────────────
+    const completedTasks = todos.filter(t => t.completed);
+    const tableBody = document.getElementById('completions-table-rows');
+    const tableEmpty = document.getElementById('completions-table-empty');
+
+    if (tableBody) {
+      if (completedTasks.length === 0) {
+        tableBody.innerHTML = '';
+        if (tableEmpty) tableEmpty.classList.remove('hidden');
+        return;
+      }
+
+      if (tableEmpty) tableEmpty.classList.add('hidden');
+
+      // Sort completed tasks by completedDate desc
+      const sortedCompleted = [...completedTasks].sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+
+      tableBody.innerHTML = sortedCompleted.map(todo => {
+        // Format focus duration
+        const focusLabel = todo.focusSeconds ? formatFocusDuration(todo.focusSeconds) : '0m';
+        
+        // Format priority visual indicators
+        const priBadge = {
+          high: '<span class="inline-flex items-center gap-1 rounded bg-error-soft/30 px-1.5 py-0.5 text-[10px] font-semibold text-error-deep"><span class="h-1.5 w-1.5 rounded-full bg-error"></span> High</span>',
+          medium: '<span class="inline-flex items-center gap-1 rounded bg-warning-soft px-1.5 py-0.5 text-[10px] font-semibold text-warning-deep"><span class="h-1.5 w-1.5 rounded-full bg-warning"></span> Med</span>',
+          low: '<span class="inline-flex items-center gap-1 rounded bg-canvas-soft-2 px-1.5 py-0.5 text-[10px] font-semibold text-body"><span class="h-1.5 w-1.5 rounded-full bg-gray-400 dark:bg-gray-600"></span> Low</span>'
+        };
+
+        // Format completion Date
+        let dateStr = '—';
+        if (todo.completedAt) {
+          const dateObj = new Date(todo.completedAt);
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          dateStr = `${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+        }
+
+        return `
+          <tr class="hover:bg-canvas-soft/40 transition-colors">
+            <td class="px-5 py-3 font-sans text-xs font-semibold text-ink max-w-[200px] truncate" title="${todo.title}">
+              ${todo.title}
+            </td>
+            <td class="px-5 py-3 text-center">
+              <span class="inline-flex rounded-full bg-canvas-soft border border-hairline px-2 py-0.5 text-[10px] font-medium text-body">
+                #${todo.category || 'Work'}
+              </span>
+            </td>
+            <td class="px-5 py-3 text-center">
+              ${priBadge[todo.priority] || todo.priority}
+            </td>
+            <td class="px-5 py-3 text-right font-mono text-[10px] text-mute tabular-nums">
+              ${focusLabel}
+            </td>
+            <td class="px-5 py-3 text-right font-mono text-[10px] text-mute tabular-nums">
+              ${dateStr}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  }
+
+  // Bind update events
+  window.addEventListener('todo:change', renderAnalytics);
+  window.addEventListener('focus-logs:change', renderAnalytics);
+
+  // Initial load
+  renderAnalytics();
+</script>

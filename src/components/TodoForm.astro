@@ -1,0 +1,273 @@
+---
+// TodoForm.astro
+---
+
+<div class="bg-canvas border border-hairline rounded-lg p-5 shadow-level-3 hover:shadow-level-4 transition-all duration-200">
+  <div class="border-b border-hairline pb-3">
+    <h2 class="font-sans text-base font-semibold text-ink">Create New Task.</h2>
+    <p class="text-xs text-mute mt-0.5">Add a new item to your backlog.</p>
+  </div>
+
+  <form id="todo-create-form" class="mt-4 space-y-4">
+    <!-- Task Title -->
+    <div>
+      <label for="task-title" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Task Title *</label>
+      <input 
+        type="text" 
+        id="task-title" 
+        name="title"
+        required
+        class="w-full bg-canvas text-ink border border-hairline rounded-md px-3 py-2 text-sm font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-10 transition-all"
+        placeholder="e.g. Write integration tests…"
+      />
+    </div>
+
+    <!-- Notes / Description -->
+    <div>
+      <label for="task-notes" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Notes</label>
+      <textarea 
+        id="task-notes" 
+        name="notes"
+        rows="2"
+        class="w-full bg-canvas text-ink border border-hairline rounded-md px-3 py-2 text-sm font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 transition-all resize-y min-h-[64px]"
+        placeholder="e.g. Cover failure scenarios and edge cases…"
+      ></textarea>
+    </div>
+
+    <!-- Priority Selection -->
+    <div>
+      <span class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Priority</span>
+      <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Task Priority">
+        <label class="priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-hairline rounded-md text-xs font-medium bg-canvas hover:bg-canvas-soft transition-all text-body" for="priority-low">
+          <input type="radio" id="priority-low" name="priority" value="low" class="sr-only" />
+          <span class="h-2 w-2 rounded-full bg-gray-400 dark:bg-gray-600"></span>
+          Low
+        </label>
+        
+        <label class="priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-brand-link ring-2 ring-brand-link/25 rounded-md text-xs font-semibold bg-canvas text-ink transition-all" for="priority-medium">
+          <input type="radio" id="priority-medium" name="priority" value="medium" class="sr-only" checked />
+          <span class="h-2 w-2 rounded-full bg-warning"></span>
+          Medium
+        </label>
+        
+        <label class="priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-hairline rounded-md text-xs font-medium bg-canvas hover:bg-canvas-soft transition-all text-body" for="priority-high">
+          <input type="radio" id="priority-high" name="priority" value="high" class="sr-only" />
+          <span class="h-2 w-2 rounded-full bg-error"></span>
+          High
+        </label>
+      </div>
+    </div>
+
+    <!-- Category Tag & Due Date -->
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label for="task-category" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Category</label>
+        <input 
+          type="text" 
+          id="task-category" 
+          name="category"
+          list="category-suggestions"
+          class="w-full bg-canvas text-ink border border-hairline rounded-md px-3 py-1.5 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-9 transition-all"
+          placeholder="e.g. Work"
+          value="Work"
+        />
+        <datalist id="category-suggestions">
+          <option value="Work"></option>
+          <option value="Personal"></option>
+          <option value="Health"></option>
+          <option value="Finance"></option>
+        </datalist>
+      </div>
+
+      <div>
+        <label for="task-date" class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Due Date</label>
+        <input 
+          type="date" 
+          id="task-date" 
+          name="dueDate"
+          class="w-full bg-canvas text-ink border border-hairline rounded-md px-3 py-1.5 text-xs font-sans focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-9 transition-all"
+        />
+      </div>
+    </div>
+
+    <!-- Inline Checklist (Dynamic Subtask Builder) -->
+    <div>
+      <span class="block font-mono text-[10px] font-medium uppercase tracking-wider text-mute mb-1.5">Subtasks Checklist</span>
+      <div id="subtasks-builder-list" class="space-y-1.5 mb-2">
+        <!-- Temporary subtask tags injected here -->
+      </div>
+      <div class="flex gap-2">
+        <input 
+          type="text" 
+          id="subtask-builder-input" 
+          class="flex-1 bg-canvas text-ink border border-hairline rounded-md px-3 py-1 text-xs font-sans placeholder-mute focus:outline-none focus:border-brand-link focus:ring-2 focus:ring-brand-link/25 h-8 transition-all"
+          placeholder="Add a checklist item…"
+        />
+        <button 
+          type="button" 
+          id="subtask-builder-add"
+          class="h-8 px-3 rounded-md bg-primary text-on-primary font-sans text-xs font-medium hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link"
+        >
+          Add
+        </button>
+      </div>
+    </div>
+
+    <!-- Form Submit Action -->
+    <div class="pt-2">
+      <button 
+        type="submit" 
+        class="w-full h-10 rounded-full bg-primary text-on-primary font-sans text-sm font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-link"
+      >
+        <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Create Task
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  const form = document.getElementById('todo-create-form') as HTMLFormElement;
+  const priorityRadios = document.querySelectorAll('input[name="priority"]');
+  const priorityLabels = document.querySelectorAll('.priority-label');
+  const subtaskAddBtn = document.getElementById('subtask-builder-add');
+  const subtaskInput = document.getElementById('subtask-builder-input') as HTMLInputElement;
+  const subtasksList = document.getElementById('subtasks-builder-list');
+
+  let pendingSubtasks = []; // Cache list of added checklist items before task save
+
+  // Handle priority visual selector card clicks
+  priorityRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const selectedValue = (e.target as HTMLInputElement).value;
+      priorityLabels.forEach(label => {
+        const inputId = label.getAttribute('for');
+        const inputElement = document.getElementById(inputId) as HTMLInputElement;
+        
+        if (inputElement && inputElement.value === selectedValue) {
+          label.className = "priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-brand-link ring-2 ring-brand-link/25 rounded-md text-xs font-semibold bg-canvas text-ink transition-all";
+        } else {
+          label.className = "priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-hairline rounded-md text-xs font-medium bg-canvas hover:bg-canvas-soft transition-all text-body";
+        }
+      });
+    });
+  });
+
+  // Handle Checklist items builder
+  function renderPendingSubtasks() {
+    if (!subtasksList) return;
+    if (pendingSubtasks.length === 0) {
+      subtasksList.innerHTML = '';
+      return;
+    }
+
+    subtasksList.innerHTML = pendingSubtasks.map((title, idx) => `
+      <div class="flex items-center justify-between bg-canvas-soft border border-hairline rounded px-2.5 py-1 text-xs text-ink font-sans">
+        <span class="truncate pr-4">${title}</span>
+        <button 
+          type="button" 
+          data-index="${idx}"
+          class="text-mute hover:text-error focus:outline-none"
+          aria-label="Remove checklist item"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    `).join('');
+
+    // Attach deletion handlers
+    const deleteBtns = subtasksList.querySelectorAll('button[data-index]');
+    deleteBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(btn.getAttribute('data-index'));
+        pendingSubtasks.splice(index, 1);
+        renderPendingSubtasks();
+      });
+    });
+  }
+
+  function addSubtaskItem() {
+    if (!subtaskInput) return;
+    const title = subtaskInput.value.trim();
+    if (title) {
+      pendingSubtasks.push(title);
+      subtaskInput.value = '';
+      renderPendingSubtasks();
+    }
+  }
+
+  if (subtaskAddBtn) {
+    subtaskAddBtn.addEventListener('click', addSubtaskItem);
+  }
+
+  if (subtaskInput) {
+    subtaskInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault(); // Stop form submission
+        addSubtaskItem();
+      }
+    });
+  }
+
+  // Handle Form Submit
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const title = (formData.get('title') as string).trim();
+      const notes = (formData.get('notes') as string).trim();
+      const priority = formData.get('priority') as string;
+      const category = (formData.get('category') as string).trim() || 'Work';
+      const dueDate = formData.get('dueDate') as string;
+
+      if (!title) return;
+
+      // Compile subtasks schema
+      const subtasks = pendingSubtasks.map((subTitle, idx) => ({
+        id: `temp-${Date.now()}-${idx}`,
+        title: subTitle,
+        completed: false
+      }));
+
+      // Insert todo
+      TodoStore.addTodo({
+        title,
+        notes,
+        priority,
+        category,
+        dueDate,
+        subtasks
+      });
+
+      // Show toast
+      window.dispatchEvent(new CustomEvent('toast:show', {
+        detail: { message: `Task "${title}" created successfully!`, type: 'success' }
+      }));
+
+      // Reset form controls
+      form.reset();
+      pendingSubtasks = [];
+      renderPendingSubtasks();
+
+      // Reset priority select style to medium default
+      priorityLabels.forEach(label => {
+        const id = label.getAttribute('for');
+        if (id === 'priority-medium') {
+          label.className = "priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-brand-link ring-2 ring-brand-link/25 rounded-md text-xs font-semibold bg-canvas text-ink transition-all";
+        } else {
+          label.className = "priority-label cursor-pointer flex items-center justify-center gap-1.5 py-1.5 px-3 border border-hairline rounded-md text-xs font-medium bg-canvas hover:bg-canvas-soft transition-all text-body";
+        }
+      });
+      const medRadio = document.getElementById('priority-medium') as HTMLInputElement;
+      if (medRadio) medRadio.checked = true;
+    });
+  }
+</script>

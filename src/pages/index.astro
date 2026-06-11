@@ -1,11 +1,312 @@
 ---
-import Welcome from '../components/Welcome.astro';
+// src/pages/index.astro
 import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Header from '../components/Header.astro';
+import StatsGrid from '../components/StatsGrid.astro';
+import TimerCard from '../components/TimerCard.astro';
+import TodoList from '../components/TodoList.astro';
+import CommandPalette from '../components/CommandPalette.astro';
+import BackupDialog from '../components/BackupDialog.astro';
+import ImmersiveTimer from '../components/ImmersiveTimer.astro';
+import AnalyticsView from '../components/AnalyticsView.astro';
+import TaskModal from '../components/TaskModal.astro';
 ---
 
 <Layout>
-	<Welcome />
+  <!-- Main Header -->
+  <Header />
+
+  <!-- Mesh Gradient Background Decoration -->
+  <div class="mesh-gradient-backdrop" aria-hidden="true"></div>
+
+  <!-- Primary Page Canvas Container -->
+  <main class="relative z-10 flex-1 w-full max-w-7xl mx-auto px-6 sm:px-8 py-8 md:py-12 space-y-8 md:space-y-10" id="main-content">
+    
+    <!-- ============================================== -->
+    <!-- VIEW PANEL 1: DASHBOARD VIEW -->
+    <!-- ============================================== -->
+    <div id="view-dashboard" class="view-panel space-y-8 md:space-y-10 transition-all duration-300">
+      <!-- Hero Band Header Section -->
+      <header class="max-w-3xl space-y-3 pt-4 pb-2">
+        <!-- Section Eyebrow -->
+        <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-brand-link">
+          PRODUCTIVITY BACKLOG.
+        </span>
+        <!-- Sentence-case, period-terminated headline -->
+        <h1 class="font-sans text-4xl sm:text-5xl font-semibold tracking-tighter text-ink leading-[1.05] sm:leading-[1.05]">
+          Manage tasks. Stay locked in focus.
+        </h1>
+        <!-- Body Lead Paragraph -->
+        <p class="font-sans text-sm sm:text-base text-body leading-relaxed max-w-2xl">
+          A developer-inspired backlog console complete with keyboard shortcuts, command line parameter parsing, tag groups, and an integrated Pomodoro focus timer.
+        </p>
+      </header>
+
+      <!-- Stats Section -->
+      <section aria-label="Statistics Dashboard">
+        <StatsGrid />
+      </section>
+
+      <!-- Primary Layout Workspace Grid -->
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start" aria-label="Todo Workspace">
+        
+        <!-- LEFT SUB-COLUMN: Focus Timer (4-span on desktop) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+          <!-- Locked task Timer card (Featured style) -->
+          <div class="space-y-2">
+            <span class="block font-mono text-[10px] font-semibold uppercase tracking-wider text-mute px-1">Timer Lock.</span>
+            <TimerCard />
+          </div>
+        </div>
+
+        <!-- RIGHT SUB-COLUMN: Dynamic Workspace backlog list (8-span on desktop) -->
+        <div class="lg:col-span-8 w-full">
+          <TodoList />
+        </div>
+
+      </section>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- VIEW PANEL 2: IMMERSIVE FOCUS TIMER VIEW -->
+    <!-- ============================================== -->
+    <div id="view-pomodoro" class="view-panel hidden space-y-8 transition-all duration-300">
+      <!-- Immersive Header -->
+      <header class="max-w-3xl space-y-3 pt-4 pb-2">
+        <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-brand-pink">
+          FOCUS TIMER.
+        </span>
+        <h1 class="font-sans text-4xl sm:text-5xl font-semibold tracking-tighter text-ink leading-[1.05] sm:leading-[1.05]">
+          Immersive Focus Mode.
+        </h1>
+        <p class="font-sans text-sm sm:text-base text-body leading-relaxed max-w-2xl">
+          Tune out distractions, lock onto a key backlog item, and mix locally-synthesized soundscapes to achieve optimal flow states.
+        </p>
+      </header>
+
+      <section aria-label="Full screen Focus Workspace">
+        <ImmersiveTimer />
+      </section>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- VIEW PANEL 3: ANALYTICS ENGINE VIEW -->
+    <!-- ============================================== -->
+    <div id="view-analytics" class="view-panel hidden space-y-8 transition-all duration-300">
+      <!-- Analytics Header -->
+      <header class="max-w-3xl space-y-3 pt-4 pb-2">
+        <span class="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-brand-violet">
+          ANALYTICS ENGINE.
+        </span>
+        <h1 class="font-sans text-4xl sm:text-5xl font-semibold tracking-tighter text-ink leading-[1.05] sm:leading-[1.05]">
+          Productivity Insights.
+        </h1>
+        <p class="font-sans text-sm sm:text-base text-body leading-relaxed max-w-2xl">
+          Inspect completion metrics, monitor daily focus trends, analyze categories allocation, and audit finished backlog tasks.
+        </p>
+      </header>
+
+      <section aria-label="Productivity Analytics Charts">
+        <AnalyticsView />
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Canonical 4-Column Footer -->
+  <footer class="mt-auto border-t border-hairline bg-canvas py-10 px-6 sm:px-8 transition-colors duration-200">
+    <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      
+      <!-- Brand column -->
+      <div class="space-y-3 col-span-2 md:col-span-1">
+        <div class="flex items-center gap-2">
+          <span class="text-primary font-bold text-lg select-none">▲</span>
+          <span class="font-sans font-bold tracking-tight text-sm text-ink">Flow.</span>
+        </div>
+        <p class="text-xs text-mute leading-relaxed">
+          Productivity backlog built for modern developer workflows. Stark mesh design by Antigravity.
+        </p>
+      </div>
+
+      <!-- Column 2 -->
+      <div class="space-y-3">
+        <h4 class="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink">Features.</h4>
+        <ul class="space-y-2 text-xs text-body">
+          <li><a href="#pomodoro" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">Focus Lock-on</a></li>
+          <li><a href="#cmd-palette" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">Command Palette (⌘K)</a></li>
+          <li><a href="#backups" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">JSON Backups</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 3 -->
+      <div class="space-y-3">
+        <h4 class="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink">Design.</h4>
+        <ul class="space-y-2 text-xs text-body">
+          <li><a href="file:///c:/Users/Aditya/OneDrive/Desktop/Todo_App/DESIGN.md" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">DESIGN.md spec</a></li>
+          <li><a href="https://fonts.google.com/specimen/Inter" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">Inter Sans</a></li>
+          <li><a href="https://fonts.google.com/specimen/JetBrains+Mono" class="hover:text-ink transition-colors focus-visible:outline-none focus-visible:underline">JetBrains Mono</a></li>
+        </ul>
+      </div>
+
+      <!-- Column 4 -->
+      <div class="space-y-3">
+        <h4 class="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink">System.</h4>
+        <p class="text-xs text-mute leading-normal">
+          Running on Astro 6.x & Tailwind CSS v4.0. Client database is stored in localStorage.
+        </p>
+      </div>
+
+    </div>
+    <div class="max-w-7xl mx-auto mt-8 pt-6 border-t border-hairline flex items-center justify-between text-[11px] text-mute">
+      <span>&copy; {new Date().getFullYear()} Flow. All rights reserved.</span>
+      <span class="font-mono">v1.0.0</span>
+    </div>
+  </footer>
+
+  <!-- Command Palette Drawer overlay component -->
+  <CommandPalette />
+
+  <!-- Create Task Modal overlay component -->
+  <TaskModal />
+
+  <!-- Settings Database Backup Modal component -->
+  <BackupDialog />
+
+  <!-- ============================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER (ACCESSIBLE ARIA) -->
+  <!-- ============================================== -->
+  <div 
+    id="toast-container" 
+    class="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full select-none"
+    aria-live="polite"
+    role="status"
+  >
+    <!-- Dynamic toasts are appended here -->
+  </div>
+
+  <script>
+    // @ts-nocheck
+    
+    // SPA Hash-based Router controller
+    function handleRouting() {
+      const hash = window.location.hash || '#dashboard';
+      const panels = document.querySelectorAll('.view-panel');
+      
+      panels.forEach(p => p.classList.add('hidden'));
+
+      if (hash === '#dashboard') {
+        const d = document.getElementById('view-dashboard');
+        if (d) d.classList.remove('hidden');
+      } else if (hash === '#pomodoro') {
+        const f = document.getElementById('view-pomodoro');
+        if (f) f.classList.remove('hidden');
+      } else if (hash === '#analytics') {
+        const a = document.getElementById('view-analytics');
+        if (a) {
+          a.classList.remove('hidden');
+          // Dispatch events to trigger chart redraws
+          window.dispatchEvent(new CustomEvent('focus-logs:change'));
+        }
+      }
+      
+      // Update link highlighting immediately in header nav
+      const navLinks = document.querySelectorAll('nav a');
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === hash) {
+          link.classList.add('text-ink', 'bg-canvas', 'shadow-sm');
+          link.classList.remove('text-body', 'hover:text-ink');
+        } else {
+          link.classList.remove('text-ink', 'bg-canvas', 'shadow-sm');
+          link.classList.add('text-body', 'hover:text-ink');
+        }
+      });
+    }
+
+    // Bind routing events
+    window.addEventListener('hashchange', handleRouting);
+    window.addEventListener('DOMContentLoaded', handleRouting);
+    handleRouting(); // run immediately
+
+    // Toast Alert Event Emitter handler
+    const container = document.getElementById('toast-container');
+
+    window.addEventListener('toast:show', (e: any) => {
+      if (!container) return;
+
+      const { message, type = 'info' } = e.detail;
+
+      // Create visual toast capsule (Level 4 shadow)
+      const toast = document.createElement('div');
+      
+      // Dynamic icons based on toast alert type
+      let icon = '';
+      let borderClass = 'border-hairline';
+      let iconColor = 'text-body';
+
+      if (type === 'success') {
+        icon = `
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        `;
+        borderClass = 'border-l-4 border-l-brand-link border-hairline';
+        iconColor = 'text-brand-link';
+      } else if (type === 'error') {
+        icon = `
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        `;
+        borderClass = 'border-l-4 border-l-error border-hairline';
+        iconColor = 'text-error';
+      } else {
+        icon = `
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        `;
+        borderClass = 'border-l-4 border-l-brand-violet border-hairline';
+        iconColor = 'text-brand-violet';
+      }
+
+      toast.className = `flex items-start gap-3 bg-canvas ${borderClass} px-4 py-3 rounded-lg shadow-level-4 transform translate-y-2 opacity-0 transition-all duration-300 ease-out border`;
+      
+      toast.innerHTML = `
+        <div class="flex-shrink-0 ${iconColor} mt-0.5">${icon}</div>
+        <div class="flex-1 text-xs font-medium text-ink pr-1 leading-snug">${message}</div>
+        <button class="flex-shrink-0 text-mute hover:text-ink focus:outline-none" aria-label="Dismiss message">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      `;
+
+      container.appendChild(toast);
+
+      // Trigger slide-in entry animation
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 50);
+
+      // Auto dismiss after 4 seconds
+      let dismissTimeout = setTimeout(dismissToast, 4000);
+
+      function dismissToast() {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }
+
+      // Manual close click
+      const closeBtn = toast.querySelector('button');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          clearTimeout(dismissTimeout);
+          dismissToast();
+        });
+      }
+    });
+  </script>
 </Layout>

@@ -1,0 +1,434 @@
+---
+// TimerCard.astro
+---
+
+<div class="relative bg-primary text-on-primary border border-hairline rounded-xl p-6 shadow-level-4 flex flex-col justify-between overflow-hidden transition-all duration-200" id="timer-container">
+  
+  <!-- Subtle decorative light pulse in the background when running -->
+  <div id="timer-bg-pulse" class="absolute inset-0 bg-gradient-to-tr from-brand-violet/20 via-brand-pink/5 to-transparent opacity-0 pointer-events-none transition-opacity duration-1000"></div>
+
+  <div class="relative z-10">
+    <div class="flex items-center justify-between border-b border-on-primary/10 pb-4">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-brand-pink animate-pulse" id="timer-status-dot"></span>
+        <span class="font-mono text-xs uppercase tracking-wider text-on-primary/70" id="timer-status-text">FOCUSING.</span>
+      </div>
+      <!-- Mode Toggle Switch -->
+      <div class="flex rounded-full bg-on-primary/10 p-0.5" role="tablist">
+        <button 
+          id="mode-focus" 
+          class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-on-primary text-primary transition-all focus-visible:outline-none"
+          role="tab"
+          aria-selected="true"
+        >
+          Work
+        </button>
+        <button 
+          id="mode-break" 
+          class="px-3 py-1 rounded-full text-[10px] font-semibold tracking-wider uppercase text-on-primary/75 hover:text-on-primary transition-all focus-visible:outline-none"
+          role="tab"
+          aria-selected="false"
+        >
+          Break
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Task Display -->
+    <div class="mt-6 min-h-[56px] flex flex-col justify-center">
+      <span class="font-mono text-[10px] uppercase tracking-wider text-on-primary/60">LOCKED TASK.</span>
+      <h3 id="timer-task-title" class="font-sans text-base font-medium text-on-primary mt-1 line-clamp-2 leading-snug">
+        No task locked. Choose one below to focus.
+      </h3>
+    </div>
+
+    <!-- Clock Display -->
+    <div class="mt-8 flex justify-center items-center">
+      <span id="timer-clock" class="font-mono text-6xl font-bold tracking-tighter tabular-nums text-on-primary select-none drop-shadow-md">
+        25:00
+      </span>
+    </div>
+  </div>
+
+  <!-- Actions Cluster -->
+  <div class="relative z-10 mt-8 flex items-center justify-between gap-3 pt-4 border-t border-on-primary/10">
+    <!-- Sound Toggle -->
+    <button 
+      id="timer-audio-toggle" 
+      class="flex h-9 w-9 items-center justify-center rounded-full bg-on-primary/10 hover:bg-on-primary/20 text-on-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary"
+      aria-label="Toggle timer completion sound"
+      title="Toggle notification sound"
+    >
+      <svg id="audio-on-icon" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+      </svg>
+      <svg id="audio-off-icon" class="h-4.5 w-4.5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zm11.293-9L12 10.879V13.12l4.879 4.88m0-12l4.879 4.879M16.879 12l4.88 4.879" />
+      </svg>
+    </button>
+
+    <!-- Main Start/Pause Button -->
+    <button 
+      id="timer-control" 
+      class="flex-1 h-10 px-6 font-sans text-sm font-semibold rounded-full bg-on-primary text-primary transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary flex items-center justify-center gap-2 cursor-pointer shadow-md"
+    >
+      <svg id="control-play" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 5v14l11-7z" />
+      </svg>
+      <svg id="control-pause" class="h-4 w-4 hidden" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+      </svg>
+      <span id="control-label">Start Focus</span>
+    </button>
+
+    <!-- Reset/Skip Button -->
+    <button 
+      id="timer-reset" 
+      class="flex h-9 w-9 items-center justify-center rounded-full bg-on-primary/10 hover:bg-on-primary/20 text-on-primary transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-on-primary"
+      aria-label="Reset timer"
+      title="Reset timer"
+    >
+      <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12" />
+      </svg>
+    </button>
+  </div>
+  
+  <!-- Audio Alert asset tag (synthesized Web Audio API will fallback, but can keep tag) -->
+  <audio id="timer-alert-audio" preload="auto" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="></audio>
+</div>
+
+<script>
+  // @ts-nocheck
+  import { TodoStore } from '../scripts/store.js';
+
+  // Config variables
+  const FOCUS_TIME = 25 * 60; // 25 mins
+  const BREAK_TIME = 5 * 60;  // 5 mins
+  
+  let currentMode = 'focus'; // 'focus' | 'break'
+  let secondsRemaining = FOCUS_TIME;
+  let isRunning = false;
+  let timerInterval = null;
+  let isAudioEnabled = true;
+  let currentTaskId = null;
+
+  // DOM Elements
+  const timerContainer = document.getElementById('timer-container');
+  const timerClock = document.getElementById('timer-clock');
+  const timerTaskTitle = document.getElementById('timer-task-title');
+  const timerStatusDot = document.getElementById('timer-status-dot');
+  const timerStatusText = document.getElementById('timer-status-text');
+  const timerBgPulse = document.getElementById('timer-bg-pulse');
+  
+  const modeFocusBtn = document.getElementById('mode-focus');
+  const modeBreakBtn = document.getElementById('mode-break');
+  
+  const timerControlBtn = document.getElementById('timer-control');
+  const controlPlayIcon = document.getElementById('control-play');
+  const controlPauseIcon = document.getElementById('control-pause');
+  const controlLabel = document.getElementById('control-label');
+  const timerResetBtn = document.getElementById('timer-reset');
+  const timerAudioBtn = document.getElementById('timer-audio-toggle');
+  const audioOnIcon = document.getElementById('audio-on-icon');
+  const audioOffIcon = document.getElementById('audio-off-icon');
+
+  // Set up audio synthesization fallback (Web Audio API)
+  function playBeep() {
+    if (!isAudioEnabled) return;
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 note
+      
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.85);
+    } catch (e) {
+      console.warn("Audio Context failed to start", e);
+    }
+  }
+
+  // Helper: format seconds -> MM:SS
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Update timer visual layout
+  function renderTimer() {
+    if (timerClock) {
+      timerClock.textContent = formatTime(secondsRemaining);
+      
+      // Update page tab title to show remaining time
+      const prefix = isRunning ? `(${formatTime(secondsRemaining)}) ` : '';
+      const modeLabel = currentMode === 'focus' ? 'Focus' : 'Break';
+      document.title = `${prefix}${modeLabel} - FocusFlow`;
+    }
+
+    if (timerStatusText) {
+      timerStatusText.textContent = currentMode === 'focus' ? 'FOCUSING.' : 'SHORT BREAK.';
+    }
+
+    if (timerStatusDot) {
+      if (isRunning) {
+        timerStatusDot.className = currentMode === 'focus' ? 'inline-flex h-2.5 w-2.5 rounded-full bg-brand-pink animate-pulse' : 'inline-flex h-2.5 w-2.5 rounded-full bg-brand-cyan animate-pulse';
+      } else {
+        timerStatusDot.className = currentMode === 'focus' ? 'inline-flex h-2.5 w-2.5 rounded-full bg-brand-pink/50' : 'inline-flex h-2.5 w-2.5 rounded-full bg-brand-cyan/50';
+      }
+    }
+
+    if (timerBgPulse) {
+      timerBgPulse.style.opacity = isRunning ? '1' : '0';
+    }
+
+    // Toggle button icons
+    if (controlPlayIcon && controlPauseIcon && controlLabel) {
+      if (isRunning) {
+        controlPlayIcon.classList.add('hidden');
+        controlPauseIcon.classList.remove('hidden');
+        controlLabel.textContent = 'Pause Focus';
+      } else {
+        controlPlayIcon.classList.remove('hidden');
+        controlPauseIcon.classList.add('hidden');
+        controlLabel.textContent = currentMode === 'focus' ? 'Start Focus' : 'Start Break';
+      }
+    }
+  }
+
+  // Persist timer session state
+  function saveState() {
+    TodoStore.setTimerState({
+      isRunning,
+      currentMode,
+      secondsRemaining,
+      endTime: isRunning ? Date.now() + (secondsRemaining * 1000) : null,
+      currentTaskId
+    });
+  }
+
+  // Sync to loaded tasks
+  function syncLockedTask() {
+    const todos = TodoStore.getTodos();
+    const activeId = TodoStore.getActiveFocusTodoId();
+    currentTaskId = activeId;
+    
+    if (activeId) {
+      const todo = todos.find(t => t.id === activeId);
+      if (todo) {
+        if (timerTaskTitle) timerTaskTitle.textContent = todo.title;
+        // Invert container outline or color to represent lock-on
+        if (timerContainer) timerContainer.classList.add('ring-2', 'ring-brand-pink');
+        return;
+      }
+    }
+    
+    if (timerTaskTitle) timerTaskTitle.textContent = "No task locked. Choose one below to focus.";
+    if (timerContainer) timerContainer.classList.remove('ring-2', 'ring-brand-pink');
+  }
+
+  // Switch modes: Work vs Break
+  function setMode(mode) {
+    currentMode = mode;
+    secondsRemaining = mode === 'focus' ? FOCUS_TIME : BREAK_TIME;
+    
+    if (modeFocusBtn && modeBreakBtn) {
+      if (mode === 'focus') {
+        modeFocusBtn.classList.add('bg-on-primary', 'text-primary');
+        modeFocusBtn.classList.remove('text-on-primary/75');
+        modeFocusBtn.setAttribute('aria-selected', 'true');
+        
+        modeBreakBtn.classList.remove('bg-on-primary', 'text-primary');
+        modeBreakBtn.classList.add('text-on-primary/75');
+        modeBreakBtn.setAttribute('aria-selected', 'false');
+      } else {
+        modeBreakBtn.classList.add('bg-on-primary', 'text-primary');
+        modeBreakBtn.classList.remove('text-on-primary/75');
+        modeBreakBtn.setAttribute('aria-selected', 'true');
+        
+        modeFocusBtn.classList.remove('bg-on-primary', 'text-primary');
+        modeFocusBtn.classList.add('text-on-primary/75');
+        modeFocusBtn.setAttribute('aria-selected', 'false');
+      }
+    }
+    
+    if (isRunning) {
+      pauseTimer();
+    }
+    renderTimer();
+    saveState();
+  }
+
+  function startTimer() {
+    if (isRunning) return;
+    isRunning = true;
+    
+    renderTimer();
+    saveState();
+
+    const startTime = Date.now();
+    const startSecs = secondsRemaining;
+
+    timerInterval = setInterval(() => {
+      // Use time delta for accuracy on background tab throttling
+      const delta = Math.floor((Date.now() - startTime) / 1000);
+      secondsRemaining = Math.max(0, startSecs - delta);
+
+      renderTimer();
+
+      if (secondsRemaining <= 0) {
+        handleTimerCompletion();
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    if (!isRunning) return;
+    isRunning = false;
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    
+    // Save focused time upon pause if in focus mode
+    if (currentMode === 'focus' && currentTaskId) {
+      const parsedTimer = TodoStore.getTimerState();
+      if (parsedTimer && parsedTimer.secondsRemaining) {
+        const timeSpent = parsedTimer.secondsRemaining - secondsRemaining;
+        if (timeSpent > 0) {
+          TodoStore.addFocusTime(currentTaskId, timeSpent);
+        }
+      }
+    }
+    
+    renderTimer();
+    saveState();
+  }
+
+  function resetTimer() {
+    pauseTimer();
+    secondsRemaining = currentMode === 'focus' ? FOCUS_TIME : BREAK_TIME;
+    renderTimer();
+    saveState();
+  }
+
+  function handleTimerCompletion() {
+    pauseTimer();
+    playBeep();
+    
+    // Log complete intervals (25 mins) if focus mode completes
+    if (currentMode === 'focus') {
+      if (currentTaskId) {
+        TodoStore.addFocusTime(currentTaskId, FOCUS_TIME);
+        
+        // Displatch Toast notification
+        const completedTask = TodoStore.getTodos().find(t => t.id === currentTaskId);
+        const taskTitle = completedTask ? completedTask.title : 'Task';
+        
+        window.dispatchEvent(new CustomEvent('toast:show', {
+          detail: { 
+            message: `Completed a focus session on: "${taskTitle}"`, 
+            type: 'success' 
+          }
+        }));
+      } else {
+        window.dispatchEvent(new CustomEvent('toast:show', {
+          detail: { message: `Completed a focus session!`, type: 'success' }
+        }));
+      }
+      
+      // Prompt break mode switch
+      setMode('break');
+    } else {
+      window.dispatchEvent(new CustomEvent('toast:show', {
+        detail: { message: `Break is over! Time to get back to work.`, type: 'info' }
+      }));
+      setMode('focus');
+    }
+  }
+
+  // Bind Buttons Click Listeners
+  if (timerControlBtn) {
+    timerControlBtn.addEventListener('click', () => {
+      if (isRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+  }
+
+  if (timerResetBtn) {
+    timerResetBtn.addEventListener('click', resetTimer);
+  }
+
+  if (modeFocusBtn) {
+    modeFocusBtn.addEventListener('click', () => setMode('focus'));
+  }
+
+  if (modeBreakBtn) {
+    modeBreakBtn.addEventListener('click', () => setMode('break'));
+  }
+
+  if (timerAudioBtn) {
+    timerAudioBtn.addEventListener('click', () => {
+      isAudioEnabled = !isAudioEnabled;
+      if (isAudioEnabled) {
+        if (audioOnIcon) audioOnIcon.classList.remove('hidden');
+        if (audioOffIcon) audioOffIcon.classList.add('hidden');
+      } else {
+        if (audioOnIcon) audioOnIcon.classList.add('hidden');
+        if (audioOffIcon) audioOffIcon.classList.remove('hidden');
+      }
+    });
+  }
+
+  // Restore state on load
+  function restoreTimerState() {
+    syncLockedTask();
+    
+    const saved = TodoStore.getTimerState();
+    if (saved) {
+      currentMode = saved.currentMode || 'focus';
+      secondsRemaining = saved.secondsRemaining;
+      
+      // Double check active task matches
+      if (saved.currentTaskId !== TodoStore.getActiveFocusTodoId()) {
+        resetTimer();
+        return;
+      }
+      
+      setMode(currentMode);
+      secondsRemaining = saved.secondsRemaining; // Re-apply seconds since setMode resets them
+      
+      if (saved.isRunning) {
+        startTimer();
+      } else {
+        renderTimer();
+      }
+    } else {
+      setMode('focus');
+    }
+  }
+
+  // Watch for active task locks
+  window.addEventListener('focus-todo:change', () => {
+    syncLockedTask();
+    resetTimer();
+  });
+
+  window.addEventListener('todo:change', syncLockedTask);
+
+  // Initialize
+  restoreTimerState();
+</script>
